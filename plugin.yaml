@@ -1,0 +1,45 @@
+name: semantic-search
+version: 0.1.0
+description: Search local files by meaning with embeddings from any OpenAI-compatible server (Ollama by default)
+author: Lanre Shittu
+manifest_version: 2
+api_version: 1
+license: MIT
+homepage: https://github.com/Shizoqua/hermes-semantic-search
+tags: [search, embeddings, retrieval, rag, local]
+requires_hermes: ">=0.21.0"
+provides_tools:
+  - semantic_search
+config_schema:
+  base_url:
+    type: str
+    default: "http://localhost:11434/v1"
+    label: Embeddings endpoint
+    description: "OpenAI-compatible base URL; the plugin calls <base_url>/embeddings. Ollama: http://localhost:11434/v1"
+  embedding_model:
+    type: str
+    default: nomic-embed-text
+    label: Embedding model
+    description: "Model name the endpoint serves (for Ollama: run `ollama pull nomic-embed-text` once)"
+  api_key:
+    type: secret
+    env: SEMANTIC_SEARCH_API_KEY
+    label: API key
+    description: "Only for hosted endpoints; leave empty for a local server"
+  top_k:
+    type: int
+    default: 5
+    label: Results per search
+  chunk_chars:
+    type: int
+    default: 1200
+    label: Chunk size (characters)
+    description: "Changing it applies to files indexed afterwards"
+  max_files:
+    type: int
+    default: 2000
+    label: Max files per folder
+  max_file_kb:
+    type: int
+    default: 1000
+    label: Max file size (KB)
