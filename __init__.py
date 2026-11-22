@@ -74,8 +74,9 @@ def _embedder(ctx: Any):
         from hermes_cli.urllib_security import open_credentialed_url
 
         opener = open_credentialed_url
-    return model, lambda texts: embeddings.embed_texts(texts, base_url=base_url, model=model,
-                                                        api_key=api_key, opener=opener)
+    return model, lambda texts: embeddings.embed_texts(
+        texts, base_url=base_url, model=model, api_key=api_key, opener=opener
+    )
 
 
 def _search(ctx: Any, args: dict) -> dict:
@@ -89,8 +90,14 @@ def _search(ctx: Any, args: dict) -> dict:
         return {"error": blocked}
     top_k = min(20, max(1, int(args.get("top_k") or _setting(ctx, "top_k"))))
     model, embed = _embedder(ctx)
-    files = list(engine.iter_files(root, max_files=_setting(ctx, "max_files"),
-                                   max_file_bytes=_setting(ctx, "max_file_kb") * 1024, is_blocked=_read_blocked))
+    files = list(
+        engine.iter_files(
+            root,
+            max_files=_setting(ctx, "max_files"),
+            max_file_bytes=_setting(ctx, "max_file_kb") * 1024,
+            is_blocked=_read_blocked,
+        )
+    )
     conn = _connect()
     try:
         with _INDEX_LOCK:
@@ -110,9 +117,16 @@ def _make_handler(ctx: Any):
         except (OSError, ValueError, sqlite3.Error) as err:
             logger.warning("semantic_search failed", exc_info=True)
             return json.dumps({"error": f"semantic search failed: {err}"})
+
     return handler
 
 
 def register(ctx: Any) -> None:
-    ctx.register_tool(name="semantic_search", toolset="semantic_search", schema=schemas.SEMANTIC_SEARCH,
-                      handler=_make_handler(ctx), description="Search local files by meaning", emoji="🔎")
+    ctx.register_tool(
+        name="semantic_search",
+        toolset="semantic_search",
+        schema=schemas.SEMANTIC_SEARCH,
+        handler=_make_handler(ctx),
+        description="Search local files by meaning",
+        emoji="🔎",
+    )

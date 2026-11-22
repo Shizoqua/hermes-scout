@@ -1,0 +1,70 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting a problem. Please remove anything private from the output you paste.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you asked, and what the tool returned.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      placeholder: |
+        1. Put these files in a folder ...
+        2. Ask Hermes: "..."
+    validations:
+      required: true
+  - type: dropdown
+    id: server
+    attributes:
+      label: Embeddings server
+      options:
+        - Ollama
+        - LM Studio
+        - llama.cpp server
+        - vLLM
+        - Hosted OpenAI-compatible API
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Embedding model
+      placeholder: nomic-embed-text
+  - type: input
+    id: hermes-version
+    attributes:
+      label: Hermes version
+      description: Output of `hermes --version`
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Linux
+        - macOS
+        - Windows (WSL2)
+        - Windows
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Tool output or logs
+      render: json

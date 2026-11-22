@@ -35,8 +35,15 @@ def _detail(err: urllib.error.HTTPError) -> str:
     return str(message or body.strip())[:300]
 
 
-def embed_texts(texts: list[str], *, base_url: str, model: str, api_key: str | None = None,
-                timeout: float = 60.0, opener: Opener | None = None) -> list[list[float]]:
+def embed_texts(
+    texts: list[str],
+    *,
+    base_url: str,
+    model: str,
+    api_key: str | None = None,
+    timeout: float = 60.0,
+    opener: Opener | None = None,
+) -> list[list[float]]:
     """One embedding vector per text, in input order.
 
     ``opener`` defaults to ``urllib.request.urlopen``; a caller sending an API key passes an opener
@@ -48,19 +55,23 @@ def embed_texts(texts: list[str], *, base_url: str, model: str, api_key: str | N
     headers = {"Content-Type": "application/json", "Accept": "application/json", "User-Agent": USER_AGENT}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
-    request = urllib.request.Request(url, data=json.dumps({"model": model, "input": texts}).encode("utf-8"),
-                                     headers=headers, method="POST")
+    request = urllib.request.Request(
+        url, data=json.dumps({"model": model, "input": texts}).encode("utf-8"), headers=headers, method="POST"
+    )
     try:
         with (opener or urllib.request.urlopen)(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as err:
         hint = " Check the model name (for Ollama: `ollama pull " + model + "`)." if err.code in (400, 404) else ""
-        raise EmbeddingError(f"embeddings server at {base_url} answered HTTP {err.code}: {_detail(err)}.{hint}") from err
+        raise EmbeddingError(
+            f"embeddings server at {base_url} answered HTTP {err.code}: {_detail(err)}.{hint}"
+        ) from err
     except urllib.error.URLError as err:
         raise EmbeddingError(
             f"cannot reach the embeddings server at {base_url} ({err.reason}). Start it (for Ollama: "
             f"`ollama serve`, then `ollama pull {model}`) or point the plugin's base_url setting at another "
-            "OpenAI-compatible embeddings endpoint.") from err
+            "OpenAI-compatible embeddings endpoint."
+        ) from err
     except (TimeoutError, ValueError) as err:
         raise EmbeddingError(f"embeddings server at {base_url} gave no usable answer: {err}") from err
     return _parse(payload, len(texts), base_url)
@@ -76,8 +87,11 @@ def _parse(payload: Any, expected: int, base_url: str) -> list[list[float]]:
     vectors: list[list[float]] = []
     for item in ordered:
         vector = item.get("embedding") if isinstance(item, dict) else None
-        if not isinstance(vector, list) or not vector or not all(
-                isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in vector):
+        if (
+            not isinstance(vector, list)
+            or not vector
+            or not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in vector)
+        ):
             raise EmbeddingError(f"embeddings server at {base_url} returned a malformed embedding")
         vectors.append([float(v) for v in vector])
     if len({len(v) for v in vectors}) != 1:

@@ -18,9 +18,12 @@ Open an [issue](https://github.com/Shizoqua/hermes-semantic-search/issues/new/ch
 3. Add or update tests in `tests/` for the behaviour you change, and run them:
 
    ```bash
-   python -m pip install "pytest>=8,<9"
-   python -m pytest tests
+   python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
+   python -m pytest tests --cov=.
+   ruff check . && ruff format --check .
    ```
+
+   CI fails if coverage drops below 90%.
 
 4. If you changed `__init__.py` or `plugin.yaml`, also run the checks the Hermes catalog runs:
 

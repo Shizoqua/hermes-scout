@@ -18,3 +18,5 @@ All notable changes to this project are documented here. The format follows
 - Settings form (`base_url`, `embedding_model`, `api_key`, `top_k`, `chunk_chars`, `max_files`,
   `max_file_kb`).
 - Skips hidden, dependency, binary and oversized files and every path Hermes's file tools refuse.
+- Tests for the engine, the HTTP client and the Hermes wiring (28 tests, over 90% coverage), run in
+  CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.

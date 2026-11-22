@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "semantic-search: semantic search over local files for Hermes Agent"
+authors:
+  - family-names: Shittu
+    given-names: Lanre
+abstract: >-
+  A Hermes Agent plugin that searches local text files by meaning. Files are split into
+  overlapping line-aligned chunks, embedded through any OpenAI-compatible embeddings endpoint
+  and ranked by cosine similarity, with an incremental SQLite index.
+version: 0.1.0
+date-released: 2026-11-22
+license: MIT
+repository-code: "https://github.com/Shizoqua/hermes-semantic-search"
+keywords:
+  - semantic search
+  - embeddings
+  - retrieval
+  - rag
+  - hermes-agent

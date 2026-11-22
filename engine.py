@@ -16,16 +16,63 @@ from pathlib import Path
 Embedder = Callable[[list[str]], list[list[float]]]
 BlockCheck = Callable[[Path], "str | None"]
 
-DEFAULT_EXTENSIONS = frozenset({
-    ".md", ".markdown", ".txt", ".rst", ".org", ".tex", ".adoc",
-    ".py", ".ipynb", ".js", ".jsx", ".ts", ".tsx", ".java", ".kt", ".scala", ".go", ".rs", ".rb",
-    ".php", ".c", ".h", ".cc", ".cpp", ".hpp", ".cs", ".swift", ".sh", ".sql", ".r", ".jl",
-    ".html", ".css", ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".csv",
-})
+DEFAULT_EXTENSIONS = frozenset(
+    {
+        ".md",
+        ".markdown",
+        ".txt",
+        ".rst",
+        ".org",
+        ".tex",
+        ".adoc",
+        ".py",
+        ".ipynb",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".java",
+        ".kt",
+        ".scala",
+        ".go",
+        ".rs",
+        ".rb",
+        ".php",
+        ".c",
+        ".h",
+        ".cc",
+        ".cpp",
+        ".hpp",
+        ".cs",
+        ".swift",
+        ".sh",
+        ".sql",
+        ".r",
+        ".jl",
+        ".html",
+        ".css",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".csv",
+    }
+)
 # Dependency, build and VCS folders: large, generated, and never what a person means by "my files".
-SKIP_DIRS = frozenset({
-    "node_modules", "__pycache__", "venv", "env", "dist", "build", "target", "site-packages",
-})
+SKIP_DIRS = frozenset(
+    {
+        "node_modules",
+        "__pycache__",
+        "venv",
+        "env",
+        "dist",
+        "build",
+        "target",
+        "site-packages",
+    }
+)
 _SNIFF_BYTES = 4096
 
 _SCHEMA = """
@@ -77,8 +124,14 @@ def _is_text(path: Path) -> bool:
         return b"\0" not in fh.read(_SNIFF_BYTES)
 
 
-def iter_files(root: Path, *, extensions: frozenset[str] = DEFAULT_EXTENSIONS, max_file_bytes: int = 1_000_000,
-               max_files: int = 2000, is_blocked: BlockCheck | None = None) -> Iterator[Path]:
+def iter_files(
+    root: Path,
+    *,
+    extensions: frozenset[str] = DEFAULT_EXTENSIONS,
+    max_file_bytes: int = 1_000_000,
+    max_files: int = 2000,
+    is_blocked: BlockCheck | None = None,
+) -> Iterator[Path]:
     """Text files under ``root`` worth indexing, in a stable order, at most ``max_files``.
 
     Hidden entries (dot-names), dependency/build folders, symlinks, binary and oversized files and
@@ -112,7 +165,7 @@ def _pack(vector: list[float]) -> tuple[bytes, float]:
 def _embed_all(embedder: Embedder, texts: list[str], batch_size: int) -> list[list[float]]:
     vectors: list[list[float]] = []
     for i in range(0, len(texts), batch_size):
-        batch = texts[i:i + batch_size]
+        batch = texts[i : i + batch_size]
         out = embedder(batch)
         if len(out) != len(batch):
             raise ValueError(f"embedder returned {len(out)} vectors for {len(batch)} texts")
@@ -120,13 +173,23 @@ def _embed_all(embedder: Embedder, texts: list[str], batch_size: int) -> list[li
     return vectors
 
 
-def update_index(conn: sqlite3.Connection, root: Path, model: str, embedder: Embedder, files: list[Path], *,
-                 max_chars: int = 1200, batch_size: int = 32) -> dict[str, int]:
+def update_index(
+    conn: sqlite3.Connection,
+    root: Path,
+    model: str,
+    embedder: Embedder,
+    files: list[Path],
+    *,
+    max_chars: int = 1200,
+    batch_size: int = 32,
+) -> dict[str, int]:
     """Bring the ``(root, model)`` index in line with ``files``: embed new or changed files, keep
     unchanged ones, drop files that are gone. Returns counts for the caller to report."""
     key = str(root)
-    known = {row[0]: (row[1], row[2]) for row in conn.execute(
-        "SELECT path, mtime_ns, size FROM files WHERE root = ? AND model = ?", (key, model))}
+    known = {
+        row[0]: (row[1], row[2])
+        for row in conn.execute("SELECT path, mtime_ns, size FROM files WHERE root = ? AND model = ?", (key, model))
+    }
     stats = {"indexed_files": 0, "reused_files": 0, "removed_files": 0}
     seen: set[str] = set()
     for path in files:
@@ -146,9 +209,15 @@ def update_index(conn: sqlite3.Connection, root: Path, model: str, embedder: Emb
             conn.executemany(
                 "INSERT INTO chunks (root, model, path, start_line, end_line, text, vec, norm)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [(key, model, rel, start, end, text, *_pack(vec)) for (start, end, text), vec in zip(chunks, vectors)])
-            conn.execute("INSERT OR REPLACE INTO files (root, model, path, mtime_ns, size) VALUES (?, ?, ?, ?, ?)",
-                         (key, model, rel, st.st_mtime_ns, st.st_size))
+                [
+                    (key, model, rel, start, end, text, *_pack(vec))
+                    for (start, end, text), vec in zip(chunks, vectors, strict=True)
+                ],
+            )
+            conn.execute(
+                "INSERT OR REPLACE INTO files (root, model, path, mtime_ns, size) VALUES (?, ?, ?, ?, ?)",
+                (key, model, rel, st.st_mtime_ns, st.st_size),
+            )
         stats["indexed_files"] += 1
     gone = [rel for rel in known if rel not in seen]
     with conn:
@@ -156,7 +225,9 @@ def update_index(conn: sqlite3.Connection, root: Path, model: str, embedder: Emb
             conn.execute("DELETE FROM chunks WHERE root = ? AND model = ? AND path = ?", (key, model, rel))
             conn.execute("DELETE FROM files WHERE root = ? AND model = ? AND path = ?", (key, model, rel))
     stats["removed_files"] = len(gone)
-    stats["chunks"] = conn.execute("SELECT COUNT(*) FROM chunks WHERE root = ? AND model = ?", (key, model)).fetchone()[0]
+    stats["chunks"] = conn.execute("SELECT COUNT(*) FROM chunks WHERE root = ? AND model = ?", (key, model)).fetchone()[
+        0
+    ]
     return stats
 
 
@@ -167,16 +238,19 @@ def search(conn: sqlite3.Connection, root: Path, model: str, query_vector: list[
         return []
     scored: list[tuple[float, str, int, int, str]] = []
     for path, start, end, text, blob, norm in conn.execute(
-            "SELECT path, start_line, end_line, text, vec, norm FROM chunks WHERE root = ? AND model = ?",
-            (str(root), model)):
+        "SELECT path, start_line, end_line, text, vec, norm FROM chunks WHERE root = ? AND model = ?",
+        (str(root), model),
+    ):
         if norm == 0:
             continue
         vec = array.array("f")
         vec.frombytes(blob)
         if len(vec) != len(query_vector):
             continue  # indexed with another embedding size under the same model name; re-indexing fixes it
-        score = sum(a * b for a, b in zip(query_vector, vec)) / (q_norm * norm)
+        score = sum(a * b for a, b in zip(query_vector, vec, strict=True)) / (q_norm * norm)
         scored.append((score, path, start, end, text))
     scored.sort(key=lambda row: row[0], reverse=True)
-    return [{"path": path, "lines": f"{start}-{end}", "score": round(score, 4), "text": text}
-            for score, path, start, end, text in scored[:top_k]]
+    return [
+        {"path": path, "lines": f"{start}-{end}", "score": round(score, 4), "text": text}
+        for score, path, start, end, text in scored[:top_k]
+    ]

@@ -82,7 +82,8 @@ def test_malformed_embedding_is_an_error(server, vector):
 
 
 def test_unreachable_server_explains_how_to_fix_it():
-    with pytest.raises(embeddings.EmbeddingError, match=r"cannot reach the embeddings server at http://127\.0\.0\.1:9/v1.*ollama pull m"):
+    expected = r"cannot reach the embeddings server at http://127\.0\.0\.1:9/v1.*ollama pull m"
+    with pytest.raises(embeddings.EmbeddingError, match=expected):
         embeddings.embed_texts(["a"], base_url="http://127.0.0.1:9/v1", model="m", timeout=2)
 
 

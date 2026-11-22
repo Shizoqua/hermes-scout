@@ -48,6 +48,7 @@ def write(path, text):
 
 # ── chunking ────────────────────────────────────────────────────────────────
 
+
 def test_chunks_cover_every_line_within_the_size_cap_and_overlap():
     text = "\n".join(f"line number {i:03d}" for i in range(1, 101))
     chunks = engine.chunk_text(text, max_chars=200, overlap_lines=2)
@@ -56,7 +57,7 @@ def test_chunks_cover_every_line_within_the_size_cap_and_overlap():
     for start, end, _ in chunks:
         covered.update(range(start, end + 1))
     assert covered == set(range(1, 101))
-    for (_, prev_end, _), (next_start, _, _) in zip(chunks, chunks[1:]):
+    for (_, prev_end, _), (next_start, _, _) in zip(chunks, chunks[1:], strict=False):
         assert next_start == prev_end - 1  # two shared lines
 
 
@@ -71,6 +72,7 @@ def test_blank_text_has_no_chunks():
 
 # ── file selection ──────────────────────────────────────────────────────────
 
+
 def test_iter_files_skips_hidden_dependency_binary_oversized_and_blocked(tmp_path):
     keep = write(tmp_path / "notes" / "plan.md", "roadmap")
     write(tmp_path / ".git" / "config.md", "hidden dir")
@@ -81,8 +83,11 @@ def test_iter_files_skips_hidden_dependency_binary_oversized_and_blocked(tmp_pat
     write(tmp_path / "big.txt", "y" * 3000)
     write(tmp_path / "private" / "keys.txt", "blocked by the host")
 
-    found = list(engine.iter_files(tmp_path, max_file_bytes=2000,
-                                   is_blocked=lambda p: "blocked" if p.parent.name == "private" else None))
+    found = list(
+        engine.iter_files(
+            tmp_path, max_file_bytes=2000, is_blocked=lambda p: "blocked" if p.parent.name == "private" else None
+        )
+    )
     assert found == [keep]
 
 
@@ -93,6 +98,7 @@ def test_iter_files_stops_at_max_files(tmp_path):
 
 
 # ── indexing and search ─────────────────────────────────────────────────────
+
 
 def test_search_ranks_the_matching_file_first(tmp_path, conn):
     write(tmp_path / "retry.md", "When the server answers 429 the client backs off with jitter before it retries.")

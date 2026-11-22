@@ -3,6 +3,9 @@
 ![semantic-search: find anything in your files by meaning](docs/banner.png)
 
 [![tests](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml/badge.svg)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml)
+[![CodeQL](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/codeql.yml)
+[![Coverage: 90%+](https://img.shields.io/badge/coverage-90%25%2B-brightgreen)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-d7ff64?logo=ruff&logoColor=black)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/github/license/Shizoqua/hermes-semantic-search?color=blue)](LICENSE)
 [![Python 3.11 to 3.14](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-7c5cff)](https://github.com/NousResearch/hermes-agent)
@@ -17,6 +20,8 @@ The plugin adds one tool, `semantic_search`, to [Hermes Agent](https://github.co
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
 
+![Demo: asking Hermes where rate limits are handled, and the ranked passages semantic_search returns](docs/demo.gif)
+
 ## Contents
 
 - [Why](#why)
@@ -30,6 +35,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Disclosure](#disclosure)
 - [Roadmap](#roadmap)
 - [Development](#development)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Why
@@ -198,8 +204,9 @@ The search engine (`engine.py`) and the HTTP client (`embeddings.py`) use only t
 library and do not import Hermes, so the tests run without a Hermes install or network access:
 
 ```bash
-python -m pip install "pytest>=8,<9"
-python -m pytest tests
+python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
+python -m pytest tests --cov=.     # 28 tests, no network
+ruff check . && ruff format --check .
 ```
 
 `__init__.py` holds the Hermes wiring (tool registration, settings, file-safety checks, storage).
@@ -210,8 +217,21 @@ hermes plugins validate . --install-deps
 hermes plugins doctor . --ci
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [CHANGELOG.md](CHANGELOG.md) for releases.
+Every push runs lint, the tests on Python 3.11 to 3.14 with a 90% coverage floor, and CodeQL
+security analysis.
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md);
+the [Code of Conduct](CODE_OF_CONDUCT.md) applies everywhere in this project. Report security
+problems privately as described in [SECURITY.md](SECURITY.md). Release notes live in
+[CHANGELOG.md](CHANGELOG.md).
+
+If this plugin is useful to you, a star helps other Hermes users find it.
+
+[![Star history](https://api.star-history.com/svg?repos=Shizoqua/hermes-semantic-search&type=Date)](https://star-history.com/#Shizoqua/hermes-semantic-search&Date)
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Made by [Lanre Shittu](https://github.com/Shizoqua).
+MIT, see [LICENSE](LICENSE). Made by [Lanre Shittu](https://github.com/Shizoqua). To cite this project, use
+the "Cite this repository" button on GitHub ([CITATION.cff](CITATION.cff)).

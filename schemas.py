@@ -18,7 +18,9 @@ SEMANTIC_SEARCH = {
             },
             "path": {
                 "type": "string",
-                "description": "Folder to search. Relative paths resolve against the working directory. Defaults to it.",
+                "description": (
+                    "Folder to search. Relative paths resolve against the working directory. Defaults to it."
+                ),
             },
             "top_k": {
                 "type": "integer",
