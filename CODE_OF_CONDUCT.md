@@ -24,7 +24,7 @@ appearance, race, caste, color, religion, or sexual identity and orientation.
 ## Enforcement
 
 Report unacceptable behaviour privately to the maintainer through
-[GitHub's private reporting](https://github.com/Shizoqua/hermes-semantic-search/security/advisories/new)
+[GitHub's private reporting](https://github.com/Shizoqua/hermes-scout/security/advisories/new)
 or by contacting [@Shizoqua](https://github.com/Shizoqua). Reports are handled confidentially.
 The maintainer may remove comments, commits or contributions that break this code of conduct, and
 may block repeat offenders.

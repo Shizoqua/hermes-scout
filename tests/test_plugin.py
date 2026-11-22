@@ -1,15 +1,11 @@
 """The Hermes wiring in __init__.py, run against stand-ins for the Hermes helpers it imports."""
 
-import importlib.util
 import json
 import sys
 import types
-from pathlib import Path
 
 import pytest
 from test_engine import toy_embed
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 class FakeCtx:
@@ -52,12 +48,7 @@ def plugin(tmp_path, monkeypatch):
 
     _module(monkeypatch, "plugins.plugin_storage", plugin_data_dir=plugin_data_dir)
 
-    spec = importlib.util.spec_from_file_location(
-        "semantic_search_plugin", ROOT / "__init__.py", submodule_search_locations=[str(ROOT)]
-    )
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setitem(sys.modules, "semantic_search_plugin", module)
-    spec.loader.exec_module(module)
+    import hermes_scout as module
 
     calls = []
 

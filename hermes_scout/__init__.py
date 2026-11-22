@@ -1,4 +1,4 @@
-"""semantic-search: find passages in local files by meaning, using embeddings.
+"""hermes-scout: find passages in local files by meaning, using embeddings.
 
 Hermes wiring only. The search itself lives in ``engine`` (chunking, index, ranking) and the HTTP
 client in ``embeddings``; both are standard library only.
@@ -17,11 +17,13 @@ from . import embeddings, engine, schemas
 
 logger = logging.getLogger(__name__)
 
-PLUGIN_ID = "semantic-search"
-API_KEY_ENV = "SEMANTIC_SEARCH_API_KEY"
+__version__ = "0.1.0"
+
+PLUGIN_ID = "hermes-scout"
+API_KEY_ENV = "SCOUT_API_KEY"
 DEFAULTS: dict[str, Any] = {
-    "base_url": "http://localhost:11434/v1",
-    "embedding_model": "nomic-embed-text",
+    "base_url": embeddings.DEFAULT_BASE_URL,
+    "embedding_model": embeddings.DEFAULT_MODEL,
     "top_k": 5,
     "chunk_chars": 1200,
     "max_files": 2000,

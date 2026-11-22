@@ -2,3 +2,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 *.db
+.coverage
+site/
+dist/

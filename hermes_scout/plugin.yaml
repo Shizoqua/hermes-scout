@@ -1,11 +1,11 @@
-name: semantic-search
+name: hermes-scout
 version: 0.1.0
 description: Search local files by meaning with embeddings from any OpenAI-compatible server (Ollama by default)
 author: Lanre Shittu
 manifest_version: 2
 api_version: 1
 license: MIT
-homepage: https://github.com/Shizoqua/hermes-semantic-search
+homepage: https://github.com/Shizoqua/hermes-scout
 tags: [search, embeddings, retrieval, rag, local]
 requires_hermes: ">=0.21.0"
 provides_tools:
@@ -23,7 +23,7 @@ config_schema:
     description: "Model name the endpoint serves (for Ollama: run `ollama pull nomic-embed-text` once)"
   api_key:
     type: secret
-    env: SEMANTIC_SEARCH_API_KEY
+    env: SCOUT_API_KEY
     label: API key
     description: "Only for hosted endpoints; leave empty for a local server"
   top_k:

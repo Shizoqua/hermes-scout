@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-import engine
+from hermes_scout import engine
 
 DIM = 64
 

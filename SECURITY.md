@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please do not open a public issue for a security problem. Use GitHub's
-[private vulnerability reporting](https://github.com/Shizoqua/hermes-semantic-search/security/advisories/new)
+[private vulnerability reporting](https://github.com/Shizoqua/hermes-scout/security/advisories/new)
 instead, with steps to reproduce and the version you tested. You will get a reply within a week.
 
 ## What the plugin does with your data

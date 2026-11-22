@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-import embeddings
+from hermes_scout import embeddings
 
 
 @pytest.fixture
@@ -38,13 +38,13 @@ def server():
     thread.join(timeout=5)
 
 
-def openai_reply(body, reverse=False):
+def compat_reply(body, reverse=False):
     data = [{"object": "embedding", "index": i, "embedding": [float(i), 1.0]} for i in range(len(body["input"]))]
     return {"object": "list", "data": list(reversed(data)) if reverse else data, "model": body["model"]}
 
 
 def test_vectors_come_back_in_input_order_even_when_the_server_shuffles(server):
-    server["reply"] = lambda body: openai_reply(body, reverse=True)
+    server["reply"] = lambda body: compat_reply(body, reverse=True)
     vectors = embeddings.embed_texts(["a", "b", "c"], base_url=server["base_url"], model="m")
     assert vectors == [[0.0, 1.0], [1.0, 1.0], [2.0, 1.0]]
     [request] = server["requests"]
@@ -53,7 +53,7 @@ def test_vectors_come_back_in_input_order_even_when_the_server_shuffles(server):
 
 
 def test_api_key_is_sent_only_when_configured(server):
-    server["reply"] = openai_reply
+    server["reply"] = compat_reply
     embeddings.embed_texts(["a"], base_url=server["base_url"], model="m")
     embeddings.embed_texts(["a"], base_url=server["base_url"], model="m", api_key="test-key")
     first, second = (r["headers"] for r in server["requests"])

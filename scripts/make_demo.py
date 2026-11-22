@@ -1,6 +1,6 @@
 """Render docs/demo.gif: an illustrative terminal session using the semantic_search tool.
 
-Run from the repository root with Pillow installed: python docs/make_demo.py
+Run from the repository root with Pillow installed: python scripts/make_demo.py
 """
 
 from pathlib import Path
@@ -80,7 +80,7 @@ def main() -> None:
         add(frame(QUESTION, tool=2, shown=shown), 500)
     add(frame(QUESTION, tool=2, shown=len(RESULTS), answer=True), 3500)
 
-    out = Path(__file__).with_name("demo.gif")
+    out = Path(__file__).resolve().parents[1] / "docs" / "demo.gif"
     palette = [f.convert("P", palette=Image.Palette.ADAPTIVE, colors=64) for f in frames]
     palette[0].save(out, save_all=True, append_images=palette[1:], duration=durations, loop=0, optimize=True)
     print(f"wrote {out} ({out.stat().st_size // 1024} KB, {len(frames)} frames)")

@@ -1,22 +1,44 @@
-# semantic-search for Hermes Agent
+<div align="center">
 
-![semantic-search: find anything in your files by meaning](docs/banner.png)
+# hermes-scout
 
-[![tests](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml/badge.svg)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml)
-[![CodeQL](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/codeql.yml)
-[![Coverage: 90%+](https://img.shields.io/badge/coverage-90%25%2B-brightgreen)](https://github.com/Shizoqua/hermes-semantic-search/actions/workflows/tests.yml)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-d7ff64?logo=ruff&logoColor=black)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/github/license/Shizoqua/hermes-semantic-search?color=blue)](LICENSE)
-[![Python 3.11 to 3.14](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776ab?logo=python&logoColor=white)](https://www.python.org/)
+**Search your local files by meaning, not just keywords.**<br>
+A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin and a standalone command line tool.
+
+![hermes-scout: find anything in your files by meaning](docs/banner.png)
+
+[![PyPI](https://img.shields.io/pypi/v/hermes-scout?color=7c5cff&logo=pypi&logoColor=white)](https://pypi.org/project/hermes-scout/)
+[![Downloads](https://static.pepy.tech/badge/hermes-scout/month)](https://pepy.tech/project/hermes-scout)
+[![tests](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml/badge.svg)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
+[![docs](https://github.com/Shizoqua/hermes-scout/actions/workflows/docs.yml/badge.svg)](https://shizoqua.github.io/hermes-scout/)
+[![CodeQL](https://github.com/Shizoqua/hermes-scout/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shizoqua/hermes-scout/actions/workflows/codeql.yml)
+[![Coverage: 90%+](https://img.shields.io/badge/coverage-90%25%2B-brightgreen)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
+<br>
+[![Python versions](https://img.shields.io/pypi/pyversions/hermes-scout?logo=python&logoColor=white)](https://pypi.org/project/hermes-scout/)
 [![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-7c5cff)](https://github.com/NousResearch/hermes-agent)
 [![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](#development)
-[![GitHub stars](https://img.shields.io/github/stars/Shizoqua/hermes-semantic-search?style=flat&color=yellow)](https://github.com/Shizoqua/hermes-semantic-search/stargazers)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-d7ff64?logo=ruff&logoColor=black)](https://github.com/astral-sh/ruff)
+[![License: MIT](https://img.shields.io/github/license/Shizoqua/hermes-scout?color=blue)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/Shizoqua/hermes-scout?style=flat&color=yellow)](https://github.com/Shizoqua/hermes-scout/stargazers)
 
-**Find passages in your local files by meaning, not just exact words.** Ask *"where do we handle
-rate limits?"* and get back the relevant paragraphs from your notes, docs or code, even when they
-never use the words "rate limit". Results come with file paths, line numbers and a similarity score.
+[**Documentation**](https://shizoqua.github.io/hermes-scout/) ·
+[**Getting started**](https://shizoqua.github.io/hermes-scout/getting-started/) ·
+[**Changelog**](CHANGELOG.md) ·
+[**Report a bug**](https://github.com/Shizoqua/hermes-scout/issues/new/choose)
 
-The plugin adds one tool, `semantic_search`, to [Hermes Agent](https://github.com/NousResearch/hermes-agent).
+</div>
+
+---
+
+Ask *"where do we handle rate limits?"* and get back the relevant paragraphs from your notes, docs
+or code, even when they never use the words "rate limit". Results come with file paths, line
+numbers and a similarity score.
+
+hermes-scout works two ways:
+
+- **As a Hermes Agent plugin**, adding a `semantic_search` tool the agent can call.
+- **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
+
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
 
@@ -27,6 +49,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Why](#why)
 - [Features](#features)
 - [Quick start](#quick-start)
+- [Command line](#command-line)
 - [Example](#example)
 - [How it works](#how-it-works)
 - [Supported embedding servers](#supported-embedding-servers)
@@ -54,29 +77,63 @@ embedding vectors, and the passages pointing in the most similar direction come 
   file tools refuse to read, such as `.env` files and credential stores.
 - **Zero dependencies.** Python standard library only: nothing extra to install or audit.
 - **Precise results.** Every hit names the file, the line range and a cosine similarity score.
-- **Configurable** from the Hermes Desktop settings page or `hermes plugins config semantic-search`.
+- **Two ways to use it:** as a Hermes tool or as a `hermes-scout` command in any terminal.
+- **Configurable** from the Hermes Desktop settings page or `hermes plugins config hermes-scout`.
 
 ## Quick start
 
-1. **Install the plugin:**
-
-   ```bash
-   hermes plugins install semantic-search
-   hermes plugins enable semantic-search
-   ```
-
-2. **Start a local embeddings server** (Ollama shown; see [other servers](#supported-embedding-servers)):
+1. **Start a local embeddings server** (Ollama shown; see [other servers](#supported-embedding-servers)):
 
    ```bash
    ollama pull nomic-embed-text
    ollama serve            # if it is not already running
    ```
 
-3. **Ask Hermes:**
+2. **Install hermes-scout** in Hermes:
+
+   ```bash
+   hermes plugins install hermes-scout
+   hermes plugins enable hermes-scout
+   ```
+
+   or as a command line tool:
+
+   ```bash
+   pipx install hermes-scout      # or: pip install hermes-scout
+   ```
+
+3. **Search.** Ask Hermes:
 
    > Search my notes in ~/notes for how I set up backups.
 
+   or run:
+
+   ```bash
+   hermes-scout search "how I set up backups" ~/notes
+   ```
+
 The first search of a folder builds its index. Later searches only re-read files that changed.
+
+## Command line
+
+```console
+$ hermes-scout search "how does the client handle rate limiting" ~/project
+0.59  notes/retries.md:1-3
+      Retry policy
+0.18  notes/pasta.md:1-3
+      Dinner
+```
+
+| Command | What it does |
+|---|---|
+| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `--json` for scripts. |
+| `hermes-scout index [PATH]` | Build or refresh the index ahead of time. |
+| `hermes-scout --version` | Print the version. |
+
+Point it at another server with `--base-url` and `--model`, or the `SCOUT_BASE_URL` and
+`SCOUT_MODEL` environment variables. Hosted endpoints read their key from `SCOUT_API_KEY`. The
+index lives in your user cache folder (`~/.cache/hermes-scout/index.db` on Linux). Full reference:
+[Command line docs](https://shizoqua.github.io/hermes-scout/cli/).
 
 ## Example
 
@@ -128,7 +185,7 @@ flowchart LR
 2. **Embedding.** Chunks are sent to the embeddings endpoint in batches of 32 and stored as float32
    vectors with their precomputed norms.
 3. **Incremental index.** The index lives in SQLite in the plugin's own data folder
-   (`<hermes home>/plugin-data/semantic-search/index.db`), keyed by folder and embedding model. Only
+   (`<hermes home>/plugin-data/hermes-scout/index.db`), keyed by folder and embedding model. Only
    new or changed files (by modification time and size) are re-embedded, and deleted files are dropped.
 4. **Ranking.** The question is embedded the same way and chunks are ranked by cosine similarity:
    `score = (q · c) / (‖q‖ ‖c‖)`.
@@ -154,14 +211,15 @@ Any server that implements the OpenAI `POST /embeddings` API works. Set `base_ur
 
 ## Settings
 
-Edit them in the Desktop app (**Settings → Plugins → semantic-search**) or with
-`hermes plugins config semantic-search`.
+In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout**) or with
+`hermes plugins config hermes-scout`. The command line takes the same settings as flags
+(`--base-url`, `--model`, `--chunk-chars`, `--max-files`, `--max-file-kb`, `-k`).
 
 | Setting | Default | Meaning |
 |---|---|---|
 | `base_url` | `http://localhost:11434/v1` | OpenAI-compatible base URL; the plugin calls `<base_url>/embeddings` |
 | `embedding_model` | `nomic-embed-text` | Model name the endpoint serves |
-| `api_key` | not set | Only for hosted endpoints; stored by Hermes as `SEMANTIC_SEARCH_API_KEY` |
+| `api_key` | not set | Only for hosted endpoints; stored by Hermes as `SCOUT_API_KEY` |
 | `top_k` | `5` | Passages returned per search (the model may ask for 1 to 20) |
 | `chunk_chars` | `1200` | Chunk size in characters; applies to files indexed afterwards |
 | `max_files` | `2000` | Files indexed per folder |
@@ -193,32 +251,41 @@ Edit them in the Desktop app (**Settings → Plugins → semantic-search**) or w
 
 - Hybrid ranking: combine keyword (BM25) and vector scores.
 - Result diversity (MMR) so near-duplicate chunks do not crowd the top results.
-- A `/semantic-search reindex` command and index statistics.
+- An index statistics command and a way to clear old indexes.
 - Tested on macOS and Windows in CI.
 
-Ideas and bug reports are welcome in [Issues](https://github.com/Shizoqua/hermes-semantic-search/issues).
+Ideas and bug reports are welcome in [Issues](https://github.com/Shizoqua/hermes-scout/issues).
 
 ## Development
 
-The search engine (`engine.py`) and the HTTP client (`embeddings.py`) use only the Python standard
-library and do not import Hermes, so the tests run without a Hermes install or network access:
+The search engine (`hermes_scout/engine.py`) and the HTTP client (`hermes_scout/embeddings.py`) use
+only the Python standard library and do not import Hermes, so the tests run without a Hermes install
+or network access:
 
 ```bash
 python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
-python -m pytest tests --cov=.     # 28 tests, no network
+python -m pytest --cov=hermes_scout     # 34 tests, no network
 ruff check . && ruff format --check .
 ```
 
-`__init__.py` holds the Hermes wiring (tool registration, settings, file-safety checks, storage).
+| Path | Contents |
+|---|---|
+| `hermes_scout/__init__.py` | Hermes wiring: tool registration, settings, file-safety checks, storage |
+| `hermes_scout/plugin.yaml` | Plugin manifest read by Hermes |
+| `hermes_scout/engine.py` | Chunking, file walking, the SQLite index and ranking |
+| `hermes_scout/embeddings.py` | OpenAI-compatible embeddings client |
+| `hermes_scout/cli.py` | The `hermes-scout` command |
+| `docs/` | The documentation site (MkDocs Material) |
+
 Before a release, check the plugin the way the Hermes catalog does:
 
 ```bash
-hermes plugins validate . --install-deps
-hermes plugins doctor . --ci
+hermes plugins validate hermes_scout --install-deps
+hermes plugins doctor hermes_scout --ci
 ```
 
-Every push runs lint, the tests on Python 3.11 to 3.14 with a 90% coverage floor, and CodeQL
-security analysis.
+Every push runs lint, the tests on Python 3.11 to 3.14 with a 90% coverage floor, CodeQL security
+analysis and a strict docs build. Publishing a GitHub release uploads the package to PyPI.
 
 ## Contributing
 
@@ -227,9 +294,9 @@ the [Code of Conduct](CODE_OF_CONDUCT.md) applies everywhere in this project. Re
 problems privately as described in [SECURITY.md](SECURITY.md). Release notes live in
 [CHANGELOG.md](CHANGELOG.md).
 
-If this plugin is useful to you, a star helps other Hermes users find it.
+If hermes-scout is useful to you, a star helps other people find it.
 
-[![Star history](https://api.star-history.com/svg?repos=Shizoqua/hermes-semantic-search&type=Date)](https://star-history.com/#Shizoqua/hermes-semantic-search&Date)
+[![Star history](https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Date)](https://star-history.com/#Shizoqua/hermes-scout&Date)
 
 ## License
 

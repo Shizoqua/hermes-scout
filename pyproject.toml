@@ -1,0 +1,48 @@
+[build-system]
+requires = ["flit_core>=3.9,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "hermes-scout"
+version = "0.1.0"
+description = "Search local files by meaning with embeddings from any OpenAI-compatible server. A Hermes Agent plugin and a standalone CLI."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Lanre Shittu" }]
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["semantic search", "embeddings", "retrieval", "rag", "ollama", "hermes-agent", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Indexing",
+]
+
+[project.urls]
+Homepage = "https://github.com/Shizoqua/hermes-scout"
+Documentation = "https://shizoqua.github.io/hermes-scout/"
+Issues = "https://github.com/Shizoqua/hermes-scout/issues"
+Changelog = "https://github.com/Shizoqua/hermes-scout/blob/main/CHANGELOG.md"
+
+[project.scripts]
+hermes-scout = "hermes_scout.cli:main"
+
+[project.entry-points."hermes_agent.plugins"]
+hermes-scout = "hermes_scout"
+
+[tool.flit.sdist]
+include = ["tests/", "CHANGELOG.md"]
+exclude = ["docs/", ".github/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"

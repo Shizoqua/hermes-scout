@@ -30,8 +30,8 @@
   <rect x="72" y="118" width="214" height="36" rx="18" fill="#ffffff" fill-opacity="0.08" stroke="#a78bfa" stroke-opacity="0.5"/>
   <text x="179" y="142" text-anchor="middle" font-family="Inter" font-size="16" font-weight="600" fill="#d8ccff">Hermes Agent plugin</text>
 
-  <text x="70" y="236" font-family="Inter" font-size="74" font-weight="800" fill="url(#title)" letter-spacing="-2">semantic</text>
-  <text x="70" y="314" font-family="Inter" font-size="74" font-weight="800" fill="url(#title)" letter-spacing="-2">search</text>
+  <text x="70" y="236" font-family="Inter" font-size="74" font-weight="800" fill="url(#title)" letter-spacing="-2">hermes</text>
+  <text x="70" y="314" font-family="Inter" font-size="74" font-weight="800" fill="url(#title)" letter-spacing="-2">scout</text>
 
   <text x="72" y="368" font-family="Inter" font-size="23" fill="#b9b6d6">Find anything in your files by meaning,</text>
   <text x="72" y="400" font-family="Inter" font-size="23" fill="#b9b6d6">not just by keywords.</text>

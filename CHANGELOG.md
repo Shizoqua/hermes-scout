@@ -18,5 +18,10 @@ All notable changes to this project are documented here. The format follows
 - Settings form (`base_url`, `embedding_model`, `api_key`, `top_k`, `chunk_chars`, `max_files`,
   `max_file_kb`).
 - Skips hidden, dependency, binary and oversized files and every path Hermes's file tools refuse.
-- Tests for the engine, the HTTP client and the Hermes wiring (28 tests, over 90% coverage), run in
-  CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
+- `hermes-scout` command line tool (`search` and `index`), installable from PyPI.
+- Documentation site built with MkDocs Material.
+- Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
+  coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
+
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Shizoqua/hermes-scout/releases/tag/v0.1.0

@@ -1,4 +1,4 @@
-"""Make the plugin's standalone modules importable as top-level modules in tests."""
+"""Make the ``hermes_scout`` package importable from a source checkout."""
 
 import sys
 from pathlib import Path
