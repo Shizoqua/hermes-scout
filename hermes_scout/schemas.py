@@ -22,6 +22,13 @@ SEMANTIC_SEARCH = {
                     "Folder to search. Relative paths resolve against the working directory. Defaults to it."
                 ),
             },
+            "glob": {
+                "type": "string",
+                "description": (
+                    "Only search files matching these patterns, relative to the folder, separated by "
+                    "commas (e.g. '*.md', 'docs/', 'src/**/*.py'). Defaults to every indexed file."
+                ),
+            },
             "top_k": {
                 "type": "integer",
                 "description": "How many passages to return (1-20). Defaults to the plugin's top_k setting.",

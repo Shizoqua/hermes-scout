@@ -1,6 +1,7 @@
 """Command line for using hermes-scout without Hermes.
 
     hermes-scout search "where do we handle rate limits" ~/notes
+    hermes-scout search "backup schedule" ~/notes --glob "*.md"
     hermes-scout index ~/notes
 
 Settings come from flags, then the environment (SCOUT_BASE_URL, SCOUT_MODEL, SCOUT_API_KEY),
@@ -16,7 +17,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
-from . import __version__, embeddings, engine
+from . import __version__, embeddings, engine, patterns
 
 
 def default_index_path() -> Path:
@@ -41,6 +42,7 @@ def _parser() -> argparse.ArgumentParser:
     common.add_argument("--chunk-chars", type=int, default=1200, help="chunk size in characters (default: 1200)")
     common.add_argument("--max-files", type=int, default=2000, help="files indexed per folder (default: 2000)")
     common.add_argument("--max-file-kb", type=int, default=1000, help="skip larger files (default: 1000)")
+    common.add_argument("--no-gitignore", action="store_true", help="also index files that .gitignore files ignore")
 
     parser = argparse.ArgumentParser(
         prog="hermes-scout", description="Search local files by meaning, using embeddings."
@@ -52,6 +54,13 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("query", help="what to look for, in natural language")
     search.add_argument("path", nargs="?", default=".", help="folder to search (default: current folder)")
     search.add_argument("-k", "--top-k", type=int, default=5, help="passages to show (default: 5)")
+    search.add_argument(
+        "-g",
+        "--glob",
+        action="append",
+        default=[],
+        help="only search matching files, e.g. '*.md', 'docs/' or 'src/**/*.py' (repeatable)",
+    )
     search.add_argument("--json", action="store_true", help="print the result as JSON")
 
     index = sub.add_parser("index", parents=[common], help="build or refresh the index for a folder")
@@ -88,7 +97,12 @@ def main(argv: list[str] | None = None) -> int:
         return embeddings.embed_texts(texts, base_url=args.base_url, model=args.model, api_key=api_key)
 
     files = list(
-        engine.iter_files(root, max_files=max(1, args.max_files), max_file_bytes=max(1, args.max_file_kb) * 1024)
+        engine.iter_files(
+            root,
+            max_files=max(1, args.max_files),
+            max_file_bytes=max(1, args.max_file_kb) * 1024,
+            respect_gitignore=not args.no_gitignore,
+        )
     )
     conn = _open_index(args.index or default_index_path())
     try:
@@ -99,7 +113,14 @@ def main(argv: list[str] | None = None) -> int:
                 f"removed {stats['removed_files']}; {stats['chunks']} chunks in the index."
             )
             return 0
-        results = engine.search(conn, root, args.model, embed([args.query])[0], top_k=max(1, args.top_k))
+        results = engine.search(
+            conn,
+            root,
+            args.model,
+            embed([args.query])[0],
+            top_k=max(1, args.top_k),
+            path_filter=patterns.PathFilter(args.glob),
+        )
     except embeddings.EmbeddingError as err:
         print(f"error: {err}", file=sys.stderr)
         return 1

@@ -110,3 +110,13 @@ def test_missing_folder_is_rejected(tmp_path, capsys):
 def test_default_index_honours_xdg_cache_home(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     assert cli.default_index_path() == tmp_path / "hermes-scout" / "index.db"
+
+
+def test_glob_and_no_gitignore_flags(server, notes, tmp_path, capsys):
+    (notes / ".gitignore").write_text("pasta.md\n", encoding="utf-8")
+    index = str(tmp_path / "index.db")
+    common = ("--base-url", server["url"], "--index", index, "--json")
+    _, out, _ = _run(capsys, "search", "pasta", str(notes), *common)
+    assert [r["path"] for r in json.loads(out)["results"]] == ["retries.md"]
+    _, out, _ = _run(capsys, "search", "pasta", str(notes), "--no-gitignore", "-g", "pasta*", *common)
+    assert [r["path"] for r in json.loads(out)["results"]] == ["pasta.md"]

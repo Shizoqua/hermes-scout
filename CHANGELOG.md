@@ -6,6 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-22
+
+### Added
+
+- Files and folders that `.gitignore` files ignore are left out of the index, the way git does it:
+  nested `.gitignore` files, anchored and folder-only patterns, `**` and `!` re-includes. Turn it
+  off with the new `respect_gitignore` setting or `--no-gitignore`.
+- Search filters: the tool's `glob` argument and the command line's `-g`/`--glob` limit a search to
+  files such as `*.md`, `docs/` or `src/**/*.py`, without re-indexing.
+- Tests run on macOS and Windows as well as Linux (77 tests).
+
 ## [0.1.1] - 2026-11-22
 
 ### Changed
@@ -40,6 +51,7 @@ All notable changes to this project are documented here. The format follows
 - Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
   coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
 
-[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Shizoqua/hermes-scout/releases/tag/v0.1.0

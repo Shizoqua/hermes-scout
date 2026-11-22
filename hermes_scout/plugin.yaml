@@ -1,5 +1,5 @@
 name: hermes-scout
-version: 0.1.1
+version: 0.2.0
 description: Search local files by meaning with embeddings from any OpenAI-compatible server (Ollama by default)
 author: Lanre Shittu
 manifest_version: 2
@@ -43,3 +43,8 @@ config_schema:
     type: int
     default: 1000
     label: Max file size (KB)
+  respect_gitignore:
+    type: bool
+    default: true
+    label: Respect .gitignore
+    description: "Skip files and folders that .gitignore files in the searched folder ignore"

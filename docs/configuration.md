@@ -11,6 +11,7 @@
 | `chunk_chars` | `1200` | Chunk size in characters; applies to files indexed afterwards |
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
+| `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
 
 The command line takes the same values as flags; see [Command line](cli.md#options).
 

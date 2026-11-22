@@ -13,11 +13,11 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from . import embeddings, engine, schemas
+from . import embeddings, engine, patterns, schemas
 
 logger = logging.getLogger(__name__)
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 PLUGIN_ID = "hermes-scout"
 API_KEY_ENV = "SCOUT_API_KEY"
@@ -28,6 +28,7 @@ DEFAULTS: dict[str, Any] = {
     "chunk_chars": 1200,
     "max_files": 2000,
     "max_file_kb": 1000,
+    "respect_gitignore": True,
 }
 # One indexing pass at a time: two concurrent first searches of a big folder would embed it twice.
 _INDEX_LOCK = threading.Lock()
@@ -36,6 +37,10 @@ _INDEX_LOCK = threading.Lock()
 def _setting(ctx: Any, key: str) -> Any:
     value = ctx.get_config(key, default=DEFAULTS[key])
     default = DEFAULTS[key]
+    if isinstance(default, bool):
+        if isinstance(value, str):
+            return value.strip().lower() not in ("false", "no", "off", "0", "")
+        return default if value is None else bool(value)
     if isinstance(default, int):
         try:
             return max(1, int(value))
@@ -98,16 +103,21 @@ def _search(ctx: Any, args: dict) -> dict:
             max_files=_setting(ctx, "max_files"),
             max_file_bytes=_setting(ctx, "max_file_kb") * 1024,
             is_blocked=_read_blocked,
+            respect_gitignore=_setting(ctx, "respect_gitignore"),
         )
     )
+    path_filter = patterns.PathFilter(args.get("glob"))
     conn = _connect()
     try:
         with _INDEX_LOCK:
             stats = engine.update_index(conn, root, model, embed, files, max_chars=_setting(ctx, "chunk_chars"))
-        results = engine.search(conn, root, model, embed([query])[0], top_k=top_k)
+        results = engine.search(conn, root, model, embed([query])[0], top_k=top_k, path_filter=path_filter)
     finally:
         conn.close()
-    return {"query": query, "root": str(root), "model": model, "results": results, "index": stats}
+    out = {"query": query, "root": str(root), "model": model, "results": results, "index": stats}
+    if path_filter:
+        out["glob"] = path_filter.globs
+    return out
 
 
 def _make_handler(ctx: Any):

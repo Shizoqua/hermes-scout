@@ -21,6 +21,12 @@ hermes-scout search "where do we handle rate limits" ~/project
 
 Add `--json` for machine-readable output, or `-k 10` for more results.
 
+Limit a search to some files with `-g` (repeatable):
+
+```bash
+hermes-scout search "retry policy" ~/project -g "*.md" -g "src/**/*.py"
+```
+
 ## Index ahead of time
 
 ```bash
@@ -38,5 +44,7 @@ hermes-scout index ~/project
 | `--chunk-chars` | (none) | `1200` |
 | `--max-files` | (none) | `2000` |
 | `--max-file-kb` | (none) | `1000` |
+| `--no-gitignore` | (none) | off: files `.gitignore` ignores are skipped |
+| `-g`, `--glob` | (none) | every indexed file |
 
 Exit codes: `0` success, `1` the embeddings server failed, `2` the folder does not exist.

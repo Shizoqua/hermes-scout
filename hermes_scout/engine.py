@@ -13,6 +13,8 @@ import sqlite3
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
+from . import patterns
+
 Embedder = Callable[[list[str]], list[list[float]]]
 BlockCheck = Callable[[Path], "str | None"]
 
@@ -154,18 +156,34 @@ def iter_files(
     max_file_bytes: int = 1_000_000,
     max_files: int = 2000,
     is_blocked: BlockCheck | None = None,
+    respect_gitignore: bool = True,
 ) -> Iterator[Path]:
     """Text files under ``root`` worth indexing, in a stable order, at most ``max_files``.
 
     Hidden entries (dot-names), dependency/build folders, symlinks, binary and oversized files and
-    any path ``is_blocked`` refuses are skipped.
+    any path ``is_blocked`` refuses are skipped, and so is anything a ``.gitignore`` file in the
+    folder tree ignores (unless ``respect_gitignore`` is false).
     """
     count = 0
+    rules_by_dir: dict[str, list[patterns.Rule]] = {str(root): []}
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
-        dirnames[:] = sorted(d for d in dirnames if not d.startswith(".") and d not in SKIP_DIRS)
+        rel_dir = Path(dirpath).relative_to(root).as_posix()
+        prefix = "" if rel_dir == "." else rel_dir + "/"
+        rules = rules_by_dir.pop(dirpath, [])
+        if respect_gitignore:
+            rules = rules + patterns.load_gitignore(Path(dirpath), prefix.rstrip("/"))
+        dirnames[:] = sorted(
+            d
+            for d in dirnames
+            if not d.startswith(".") and d not in SKIP_DIRS and not patterns.is_ignored(rules, prefix + d, True)
+        )
+        for d in dirnames:
+            rules_by_dir[os.path.join(dirpath, d)] = rules
         for name in sorted(filenames):
             path = Path(dirpath) / name
             if name.startswith(".") or path.suffix.lower() not in extensions or path.is_symlink():
+                continue
+            if patterns.is_ignored(rules, prefix + name, False):
                 continue
             try:
                 if path.stat().st_size > max_file_bytes or not _is_text(path):
@@ -254,8 +272,16 @@ def update_index(
     return stats
 
 
-def search(conn: sqlite3.Connection, root: Path, model: str, query_vector: list[float], top_k: int = 5) -> list[dict]:
-    """The ``top_k`` chunks most similar to ``query_vector`` by cosine similarity, best first."""
+def search(
+    conn: sqlite3.Connection,
+    root: Path,
+    model: str,
+    query_vector: list[float],
+    top_k: int = 5,
+    path_filter: patterns.PathFilter | None = None,
+) -> list[dict]:
+    """The ``top_k`` chunks most similar to ``query_vector`` by cosine similarity, best first,
+    limited to files ``path_filter`` matches when one is given."""
     q_norm = math.sqrt(sum(v * v for v in query_vector))
     if q_norm == 0 or top_k < 1:
         return []
@@ -264,7 +290,7 @@ def search(conn: sqlite3.Connection, root: Path, model: str, query_vector: list[
         "SELECT path, start_line, end_line, text, vec, norm FROM chunks WHERE root = ? AND model = ?",
         (str(root), model),
     ):
-        if norm == 0:
+        if norm == 0 or (path_filter and not path_filter.matches(path)):
             continue
         vec = array.array("f")
         vec.frombytes(blob)

@@ -30,6 +30,7 @@ hermes plugins enable hermes-scout
 | `query` | What to look for, in natural language. Required. |
 | `path` | Folder to search; relative paths resolve against the agent's working directory. |
 | `top_k` | Passages to return, 1 to 20. |
+| `glob` | Only search matching files, such as `*.md`, `docs/` or `src/**/*.py`; separate several with commas. |
 
 ## Settings
 

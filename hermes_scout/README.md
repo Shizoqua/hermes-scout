@@ -35,6 +35,8 @@ The first search of a folder builds an index. Later searches only re-embed files
 - Chunks are embedded in batches and stored in a SQLite index in the plugin's data folder, keyed
   by folder and embedding model. Only new or changed files are embedded again.
 - Your question is embedded the same way and chunks are ranked by cosine similarity.
+- Files that `.gitignore` files ignore are skipped, and a search can be narrowed with a filter such
+  as `*.md` or `docs/`.
 - Python standard library only: no dependencies to install.
 
 ## Settings
@@ -51,6 +53,7 @@ Edit them in the Desktop app (**Settings, Plugins, hermes-scout**) or with
 | `chunk_chars` | `1200` | Chunk size in characters |
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
+| `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
 
 Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compatible APIs.
 
@@ -60,8 +63,8 @@ Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compati
   The default is a server on your own machine. A hosted endpoint receives the text of the files
   you search.
 - **Files read:** text files under the folder Hermes asks to search. Hidden files, dependency and
-  build folders, binaries, oversized files and every path Hermes's file tools refuse (such as
-  `.env` files) are skipped. The plugin never writes to that folder.
+  build folders, anything a `.gitignore` ignores, binaries, oversized files and every path Hermes's
+  file tools refuse (such as `.env` files) are skipped. The plugin never writes to that folder.
 - **Files written:** the index database in the plugin's own data folder only.
 - **Credentials:** the optional `SCOUT_API_KEY` is read through Hermes's secret store and sent only
   to the configured endpoint. It is dropped if the endpoint redirects to another origin.

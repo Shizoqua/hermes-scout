@@ -72,7 +72,11 @@ embedding vectors, and the passages pointing in the most similar direction come 
 - **Safe by default.** Skips hidden files, dependency folders, binaries and every path Hermes's own
   file tools refuse to read, such as `.env` files and credential stores.
 - **Zero dependencies.** Python standard library only: nothing extra to install or audit.
+- **Respects `.gitignore`.** Files your project ignores (build output, logs, generated code) stay
+  out of the index, at every folder level, with `!` re-includes, just like git.
+- **Filters.** Narrow a search to `*.md`, `docs/` or `src/**/*.py` without re-indexing.
 - **Precise results.** Every hit names the file, the line range and a cosine similarity score.
+- **Cross-platform.** Tested on Linux, macOS and Windows with Python 3.11 to 3.14.
 - **Two ways to use it:** as a Hermes tool or as a `hermes-scout` command in any terminal.
 - **Configurable** from the Hermes Desktop settings page or `hermes plugins config hermes-scout`.
 
@@ -122,7 +126,7 @@ $ hermes-scout search "how does the client handle rate limiting" ~/project
 
 | Command | What it does |
 |---|---|
-| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `--json` for scripts. |
+| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--json` for scripts. |
 | `hermes-scout index [PATH]` | Build or refresh the index ahead of time. |
 | `hermes-scout --version` | Print the version. |
 
@@ -191,8 +195,8 @@ Indexes for different embedding models are kept apart, so switching models never
 
 **What gets indexed:** common text, documentation, code and config extensions (`.md`, `.txt`, `.py`,
 `.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...). **Skipped:** hidden files and folders, dependency and
-build folders (`node_modules`, `venv`, `dist`, `build`, ...), symlinks, binary files, files over the
-size limit, and every path Hermes's file tools refuse to read.
+build folders (`node_modules`, `venv`, `dist`, `build`, ...), anything a `.gitignore` file ignores,
+symlinks, binary files, files over the size limit, and every path Hermes's file tools refuse to read.
 
 ## Supported embedding servers
 
@@ -210,7 +214,7 @@ Any server that implements the OpenAI `POST /embeddings` API works. Set `base_ur
 
 In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout**) or with
 `hermes plugins config hermes-scout`. The command line takes the same settings as flags
-(`--base-url`, `--model`, `--chunk-chars`, `--max-files`, `--max-file-kb`, `-k`).
+(`--base-url`, `--model`, `--chunk-chars`, `--max-files`, `--max-file-kb`, `--no-gitignore`, `-k`).
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -221,6 +225,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `chunk_chars` | `1200` | Chunk size in characters; applies to files indexed afterwards |
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
+| `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
 
 ## Troubleshooting
 
@@ -229,7 +234,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `cannot reach the embeddings server at http://localhost:11434/v1` | Start Ollama (`ollama serve`) or point `base_url` at your server. |
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
-| No results for files you expected | Check the file's extension, size (`max_file_kb`) and that it is not hidden or in a skipped folder. |
+| No results for files you expected | Check the file's extension, size (`max_file_kb`), that it is not hidden or in a skipped folder, and that no `.gitignore` ignores it. |
 | The first search is slow | Expected for a large folder: every file is embedded once. Later searches only embed changes. |
 
 ## Disclosure
@@ -249,7 +254,6 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 - Hybrid ranking: combine keyword (BM25) and vector scores.
 - Result diversity (MMR) so near-duplicate chunks do not crowd the top results.
 - An index statistics command and a way to clear old indexes.
-- Tested on macOS and Windows in CI.
 
 Ideas and bug reports are welcome in [Issues](https://github.com/Shizoqua/hermes-scout/issues).
 
@@ -261,7 +265,7 @@ or network access:
 
 ```bash
 python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
-python -m pytest --cov=hermes_scout     # 36 tests, no network
+python -m pytest --cov=hermes_scout     # 77 tests, no network
 ruff check . && ruff format --check .
 ```
 

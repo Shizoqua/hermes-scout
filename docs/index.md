@@ -22,6 +22,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - **Local-first**: works with Ollama, LM Studio, llama.cpp or vLLM on your own machine.
 - **Fast repeat searches**: an incremental index only re-embeds files that changed.
 - **Safe by default**: skips hidden files, dependency folders, binaries and credential files.
+- **Respects `.gitignore`**, and searches can be narrowed with filters like `*.md` or `docs/`.
 - **Zero dependencies**: Python standard library only.
 
 </div>

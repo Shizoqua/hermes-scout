@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "hermes-scout"
-version = "0.1.1"
+version = "0.2.0"
 description = "Search local files by meaning with embeddings from any OpenAI-compatible server. A Hermes Agent plugin and a standalone CLI."
 readme = "README.md"
 license = "MIT"

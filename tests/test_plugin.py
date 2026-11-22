@@ -130,3 +130,16 @@ def test_embedding_errors_come_back_as_a_tool_error(plugin, monkeypatch):
 
     monkeypatch.setattr(plugin.embeddings, "embed_texts", unreachable)
     assert _call(plugin, {"query": "alpha"}) == {"error": "cannot reach the embeddings server at http://x"}
+
+
+def test_glob_filters_results_and_gitignore_is_respected(plugin):
+    (plugin.work / ".gitignore").write_text("private/\n", encoding="utf-8")
+    for folder in ("docs", "src", "private"):
+        (plugin.work / folder).mkdir()
+    (plugin.work / "docs" / "a.md").write_text("alpha notes", encoding="utf-8")
+    (plugin.work / "src" / "a.py").write_text("alpha code", encoding="utf-8")
+    (plugin.work / "private" / "a.md").write_text("alpha private", encoding="utf-8")
+    out = _call(plugin, {"query": "alpha", "glob": "*.md"})
+    assert [r["path"] for r in out["results"]] == ["docs/a.md"] and out["glob"] == ["*.md"]
+    out = _call(plugin, {"query": "alpha", "glob": "*.md"}, {"respect_gitignore": "false"})
+    assert sorted(r["path"] for r in out["results"]) == ["docs/a.md", "private/a.md"]

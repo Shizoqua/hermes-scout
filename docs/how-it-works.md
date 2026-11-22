@@ -30,3 +30,17 @@ Common text, documentation, code and config extensions (`.md`, `.txt`, `.py`, `.
 `.json`, `.yaml`, ...). Skipped: hidden files and folders, dependency and build folders
 (`node_modules`, `venv`, `dist`, `build`, ...), symlinks, binary files and files over the size limit.
 Inside Hermes, paths Hermes's file tools refuse to read are skipped as well.
+
+## `.gitignore`
+
+Files and folders that a `.gitignore` file ignores are left out of the index, the way git would:
+`.gitignore` files in subfolders apply below them, a pattern without a `/` matches at any depth,
+`/pattern` is anchored to its folder, `folder/` matches folders only, `**` crosses folders and
+`!pattern` re-includes something an earlier rule ignored. Turn this off with the
+`respect_gitignore` setting or the `--no-gitignore` flag.
+
+## Filters
+
+A search can be limited to some files without re-indexing: `*.md` (any Markdown file), `docs/`
+(everything in a folder) or `src/**/*.py` (Python files at any depth under `src`). Separate several
+patterns with commas in Hermes, or repeat `-g` on the command line.

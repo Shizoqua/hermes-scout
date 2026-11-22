@@ -174,3 +174,39 @@ def test_zero_query_vector_returns_nothing(tmp_path, conn):
     write(tmp_path / "a.md", "alpha topic")
     engine.update_index(conn, tmp_path, "toy", toy_embed, list(engine.iter_files(tmp_path)))
     assert engine.search(conn, tmp_path, "toy", [0.0] * DIM) == []
+
+
+# ── .gitignore and filters ──────────────────────────────────────────────────
+
+
+def test_iter_files_respects_gitignore_files_at_every_level(tmp_path):
+    write(tmp_path / ".gitignore", "*.log.md\ngenerated/\n!important.log.md\n")
+    keep = write(tmp_path / "notes.md", "keep")
+    write(tmp_path / "debug.log.md", "ignored by pattern")
+    important = write(tmp_path / "important.log.md", "re-included")
+    write(tmp_path / "generated" / "api.md", "ignored folder")
+    write(tmp_path / "sub" / ".gitignore", "draft.md\n")
+    write(tmp_path / "sub" / "draft.md", "ignored below sub")
+    sub_keep = write(tmp_path / "sub" / "final.md", "keep")
+    other_draft = write(tmp_path / "other" / "draft.md", "not under sub")
+    found = set(engine.iter_files(tmp_path))
+    assert found == {keep, important, sub_keep, other_draft}
+
+
+def test_iter_files_can_ignore_gitignore(tmp_path):
+    write(tmp_path / ".gitignore", "*.md\n")
+    note = write(tmp_path / "a.md", "text")
+    assert list(engine.iter_files(tmp_path)) == []
+    assert list(engine.iter_files(tmp_path, respect_gitignore=False)) == [note]
+
+
+def test_search_path_filter_limits_results(tmp_path, conn):
+    files = [
+        write(tmp_path / "docs" / "retries.md", "retries back off after a rate limit"),
+        write(tmp_path / "src" / "retries.py", "retries back off after a rate limit"),
+    ]
+    engine.update_index(conn, tmp_path, "toy", toy_embed, files)
+    query = toy_embed(["rate limit retries"])[0]
+    assert len(engine.search(conn, tmp_path, "toy", query)) == 2
+    only_docs = engine.search(conn, tmp_path, "toy", query, path_filter=engine.patterns.PathFilter("docs/"))
+    assert [r["path"] for r in only_docs] == ["docs/retries.md"]
