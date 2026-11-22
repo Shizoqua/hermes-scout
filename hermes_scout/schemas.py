@@ -1,7 +1,7 @@
-"""Tool schema: what the model reads to decide when to call ``semantic_search``."""
+"""Tool schema: what the model reads to decide when to call ``scout_search``."""
 
 SEMANTIC_SEARCH = {
-    "name": "semantic_search",
+    "name": "scout_search",
     "description": (
         "Search a folder of local text files (notes, docs, source code) by meaning rather than exact "
         "words, using embeddings. Returns the most relevant passages with file path, line range and a "

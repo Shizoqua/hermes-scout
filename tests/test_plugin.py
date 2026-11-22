@@ -72,7 +72,7 @@ def test_registers_exactly_the_declared_tool(plugin):
     ctx = FakeCtx()
     plugin.register(ctx)
     [tool] = ctx.tools
-    assert (tool["name"], tool["schema"]["name"]) == ("semantic_search", "semantic_search")
+    assert (tool["name"], tool["schema"]["name"]) == ("scout_search", "scout_search")
     assert tool["schema"]["parameters"]["required"] == ["query"]
 
 

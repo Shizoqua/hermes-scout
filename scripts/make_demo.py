@@ -1,4 +1,4 @@
-"""Render docs/demo.gif: an illustrative terminal session using the semantic_search tool.
+"""Render docs/demo.gif: an illustrative terminal session using the scout_search tool.
 
 Run from the repository root with Pillow installed: python scripts/make_demo.py
 """
@@ -41,7 +41,7 @@ def frame(typed: str, tool: int = 0, shown: int = 0, answer: bool = False) -> Im
     d.text((X0 + 24, y), typed + ("_" if not tool else ""), font=mono, fill=TEXT)
     y += 52
     if tool >= 1:
-        d.text((X0, y), "semantic_search", font=mono, fill=CYAN)
+        d.text((X0, y), "scout_search", font=mono, fill=CYAN)
         d.text((X0 + 190, y), 'path="~/notes"', font=mono, fill=DIM)
         y += 32
     if tool >= 2:

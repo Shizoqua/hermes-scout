@@ -1,6 +1,6 @@
 # Use with Hermes
 
-The plugin adds one tool, `semantic_search`, that the agent calls when you ask where something is
+The plugin adds one tool, `scout_search`, that the agent calls when you ask where something is
 discussed or implemented.
 
 ## Install

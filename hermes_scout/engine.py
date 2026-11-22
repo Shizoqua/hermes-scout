@@ -97,26 +97,49 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
 def chunk_text(text: str, max_chars: int = 1200, overlap_lines: int = 2) -> list[tuple[int, int, str]]:
     """``(start_line, end_line, text)`` chunks of whole lines, each at most ``max_chars``.
 
-    Consecutive chunks share ``overlap_lines`` lines, so a passage that straddles a boundary is
-    still found whole in one of them. A single line longer than ``max_chars`` is truncated.
+    Consecutive chunks share up to ``overlap_lines`` lines, so a passage that straddles a boundary
+    is still found whole in one of them. The overlap shrinks when lines are long, so no text is
+    embedded twice over. A line longer than ``max_chars`` is split into pieces (at a space where it
+    can be), and every piece keeps that line's number.
     """
     if max_chars < 1:
         raise ValueError("max_chars must be at least 1")
-    lines = text.splitlines()
+    # (line number, text) pieces, each at most max_chars long.
+    pieces: list[tuple[int, str]] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        pieces.extend((number, part) for part in _split_line(line, max_chars))
     chunks: list[tuple[int, int, str]] = []
     start = 0
-    while start < len(lines):
+    while start < len(pieces):
         end, size = start, 0
-        while end < len(lines) and (end == start or size + len(lines[end]) + 1 <= max_chars):
-            size += len(lines[end]) + 1
+        while end < len(pieces) and (end == start or size + len(pieces[end][1]) + 1 <= max_chars):
+            size += len(pieces[end][1]) + 1
             end += 1
-        body = "\n".join(lines[start:end]).strip()
+        body = "\n".join(part for _, part in pieces[start:end]).strip()
         if body:
-            chunks.append((start + 1, end, body[:max_chars]))
-        if end >= len(lines):
+            chunks.append((pieces[start][0], pieces[end - 1][0], body))
+        if end >= len(pieces):
             break
-        start = max(end - overlap_lines, start + 1)
+        # Overlap at most a third of the chunk's pieces and a quarter of its size.
+        overlap = min(overlap_lines, (end - start) // 3)
+        while overlap and sum(len(part) + 1 for _, part in pieces[end - overlap : end]) > max_chars // 4:
+            overlap -= 1
+        start = end - overlap
     return chunks
+
+
+def _split_line(line: str, max_chars: int) -> list[str]:
+    """``line`` cut into pieces of at most ``max_chars``, at the last space before the limit when
+    there is one."""
+    parts: list[str] = []
+    while len(line) > max_chars:
+        cut = line.rfind(" ", 1, max_chars + 1)
+        if cut <= 0:
+            cut = max_chars
+        parts.append(line[:cut])
+        line = line[cut:].lstrip(" ")
+    parts.append(line)
+    return parts
 
 
 def _is_text(path: Path) -> bool:

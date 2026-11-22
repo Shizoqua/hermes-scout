@@ -8,7 +8,7 @@ the words "rate limit".
 
 hermes-scout works two ways:
 
-- **As a [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin**, adding a `semantic_search`
+- **As a [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin**, adding a `scout_search`
   tool the agent can call.
 - **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
 

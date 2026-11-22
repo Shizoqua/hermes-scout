@@ -32,13 +32,13 @@ numbers and a similarity score.
 
 hermes-scout works two ways:
 
-- **As a Hermes Agent plugin**, adding a `semantic_search` tool the agent can call.
+- **As a Hermes Agent plugin**, adding a `scout_search` tool the agent can call.
 - **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
 
-![Demo: asking Hermes where rate limits are handled, and the ranked passages semantic_search returns](docs/demo.gif)
+![Demo: asking Hermes where rate limits are handled, and the ranked passages scout_search returns](docs/demo.gif)
 
 ## Contents
 
@@ -177,7 +177,8 @@ flowchart LR
 ```
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
-   Neighbouring chunks share two lines, so a passage that straddles a boundary is still found whole.
+   Neighbouring chunks share up to two lines, so a passage that straddles a boundary is still found
+   whole. A line longer than the chunk size is split into pieces, so nothing is cut off.
 2. **Embedding.** Chunks are sent to the embeddings endpoint in batches of 32 and stored as float32
    vectors with their precomputed norms.
 3. **Incremental index.** The index lives in SQLite in the plugin's own data folder
@@ -260,7 +261,7 @@ or network access:
 
 ```bash
 python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
-python -m pytest --cov=hermes_scout     # 34 tests, no network
+python -m pytest --cov=hermes_scout     # 36 tests, no network
 ruff check . && ruff format --check .
 ```
 

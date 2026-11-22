@@ -1,5 +1,5 @@
 name: hermes-scout
-version: 0.1.0
+version: 0.1.1
 description: Search local files by meaning with embeddings from any OpenAI-compatible server (Ollama by default)
 author: Lanre Shittu
 manifest_version: 2
@@ -9,7 +9,7 @@ homepage: https://github.com/Shizoqua/hermes-scout
 tags: [search, embeddings, retrieval, rag, local]
 requires_hermes: ">=0.21.0"
 provides_tools:
-  - semantic_search
+  - scout_search
 config_schema:
   base_url:
     type: str

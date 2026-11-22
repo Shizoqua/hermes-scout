@@ -14,7 +14,8 @@ flowchart LR
 ```
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
-   Neighbouring chunks share two lines, so a passage that straddles a boundary is still found whole.
+   Neighbouring chunks share up to two lines, so a passage that straddles a boundary is still found
+   whole. A line longer than the chunk size is split into pieces, so nothing is cut off.
 2. **Embedding.** Chunks are sent in batches of 32 and stored as float32 vectors with precomputed norms.
 3. **Incremental index.** The SQLite index is keyed by folder and embedding model. Only new or changed
    files (by modification time and size) are re-embedded, and deleted files are dropped.

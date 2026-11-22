@@ -6,6 +6,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-22
+
+### Changed
+
+- The Hermes tool is now called `scout_search` (toolset `hermes_scout`), so it no longer clashes
+  with another plugin's `semantic_search` tool.
+
+### Fixed
+
+- Lines longer than the chunk size are split into pieces instead of cut off, so the rest of a long
+  line (a one-line paragraph, minified JSON) is searchable too.
+- Chunks overlap less when lines are long, so text is no longer embedded twice.
+
+### Added
+
+- A README inside the plugin folder, shown on the plugin's Hermes Marketplace page.
+
 ## [0.1.0] - 2026-11-22
 
 ### Added
@@ -23,5 +40,6 @@ All notable changes to this project are documented here. The format follows
 - Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
   coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
 
-[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Shizoqua/hermes-scout/releases/tag/v0.1.0

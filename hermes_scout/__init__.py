@@ -17,7 +17,7 @@ from . import embeddings, engine, schemas
 
 logger = logging.getLogger(__name__)
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 PLUGIN_ID = "hermes-scout"
 API_KEY_ENV = "SCOUT_API_KEY"
@@ -117,7 +117,7 @@ def _make_handler(ctx: Any):
         except embeddings.EmbeddingError as err:
             return json.dumps({"error": str(err)})
         except (OSError, ValueError, sqlite3.Error) as err:
-            logger.warning("semantic_search failed", exc_info=True)
+            logger.warning("scout_search failed", exc_info=True)
             return json.dumps({"error": f"semantic search failed: {err}"})
 
     return handler
@@ -125,8 +125,8 @@ def _make_handler(ctx: Any):
 
 def register(ctx: Any) -> None:
     ctx.register_tool(
-        name="semantic_search",
-        toolset="semantic_search",
+        name="scout_search",
+        toolset="hermes_scout",
         schema=schemas.SEMANTIC_SEARCH,
         handler=_make_handler(ctx),
         description="Search local files by meaning",

@@ -61,9 +61,31 @@ def test_chunks_cover_every_line_within_the_size_cap_and_overlap():
         assert next_start == prev_end - 1  # two shared lines
 
 
-def test_an_overlong_line_is_truncated_not_dropped():
-    [(start, end, body)] = engine.chunk_text("x" * 5000, max_chars=100)
-    assert (start, end, len(body)) == (1, 1, 100)
+def test_an_overlong_line_is_split_and_nothing_is_lost():
+    words = [f"word{i:04d}" for i in range(400)]
+    text = "intro\n" + " ".join(words) + "\noutro"
+    chunks = engine.chunk_text(text, max_chars=200)
+    assert all(len(body) <= 200 for _, _, body in chunks)
+    found = " ".join(body for _, _, body in chunks).split()
+    assert set(words) <= set(found) and {"intro", "outro"} <= set(found)
+    # Pieces of the long line all report line 2.
+    assert {(s, e) for s, e, body in chunks if "word0200" in body} <= {(2, 2), (1, 2), (2, 3)}
+
+
+def test_a_line_without_spaces_is_cut_at_the_limit():
+    chunks = engine.chunk_text("x" * 450, max_chars=100)
+    assert [len(body) for _, _, body in chunks] == [100, 100, 100, 100, 50]
+    assert all((s, e) == (1, 1) for s, e, _ in chunks)
+
+
+def test_long_lines_are_not_embedded_twice():
+    text = "\n".join(chr(97 + i) * 590 for i in range(10))
+    chunks = engine.chunk_text(text, max_chars=1200)
+    assert sum(len(body) for _, _, body in chunks) <= len(text) * 1.25
+    covered = set()
+    for start, end, _ in chunks:
+        covered.update(range(start, end + 1))
+    assert covered == set(range(1, 11))
 
 
 def test_blank_text_has_no_chunks():
