@@ -7,19 +7,15 @@ A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin and a stan
 
 ![hermes-scout: find anything in your files by meaning](docs/banner.png)
 
-[![PyPI](https://img.shields.io/pypi/v/hermes-scout?color=7c5cff&logo=pypi&logoColor=white)](https://pypi.org/project/hermes-scout/)
-[![Downloads](https://static.pepy.tech/badge/hermes-scout/month)](https://pepy.tech/project/hermes-scout)
-[![tests](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml/badge.svg)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
-[![docs](https://github.com/Shizoqua/hermes-scout/actions/workflows/docs.yml/badge.svg)](https://shizoqua.github.io/hermes-scout/)
-[![CodeQL](https://github.com/Shizoqua/hermes-scout/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shizoqua/hermes-scout/actions/workflows/codeql.yml)
-[![Coverage: 90%+](https://img.shields.io/badge/coverage-90%25%2B-brightgreen)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
+[![PyPI](https://img.shields.io/pypi/v/hermes-scout?label=pypi&color=7c5cff&logo=pypi&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pypi.org/project/hermes-scout/)
+[![Downloads](https://img.shields.io/pepy/dt/hermes-scout?label=downloads&color=ec4899&logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pepy.tech/project/hermes-scout)
+[![tests](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/tests.yml?branch=main&label=tests&logo=githubactions&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
+[![docs](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/docs.yml?branch=main&label=docs&logo=materialformkdocs&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://shizoqua.github.io/hermes-scout/)
 <br>
-[![Python versions](https://img.shields.io/pypi/pyversions/hermes-scout?logo=python&logoColor=white)](https://pypi.org/project/hermes-scout/)
-[![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-7c5cff)](https://github.com/NousResearch/hermes-agent)
-[![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen)](#development)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-d7ff64?logo=ruff&logoColor=black)](https://github.com/astral-sh/ruff)
-[![License: MIT](https://img.shields.io/github/license/Shizoqua/hermes-scout?color=blue)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/Shizoqua/hermes-scout?style=flat&color=yellow)](https://github.com/Shizoqua/hermes-scout/stargazers)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b82f6?logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://www.python.org/)
+[![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-a855f7?labelColor=1e1b2e&style=flat-square)](https://github.com/NousResearch/hermes-agent)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-zero-14b8a6?labelColor=1e1b2e&style=flat-square)](#development)
+[![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b?labelColor=1e1b2e&style=flat-square)](LICENSE)
 
 [**Documentation**](https://shizoqua.github.io/hermes-scout/) ·
 [**Getting started**](https://shizoqua.github.io/hermes-scout/getting-started/) ·
