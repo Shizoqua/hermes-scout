@@ -50,6 +50,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Command line](#command-line)
+- [In Hermes: the /scout command](#in-hermes-the-scout-command)
 - [Example](#example)
 - [How it works](#how-it-works)
 - [Supported embedding servers](#supported-embedding-servers)
@@ -59,6 +60,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Roadmap](#roadmap)
 - [Development](#development)
 - [Contributing](#contributing)
+- [Star History](#star-history)
 - [License](#license)
 
 ## Why
@@ -136,12 +138,27 @@ $ hermes-scout search "how does the client handle rate limiting" ~/project
 | `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--ranking keyword` for exact words only, `--json` for scripts. |
 | `hermes-scout similar FILE --in FOLDER` | Files most related to `FILE` (or `--text "..."`); `--lines 10-40` for part of a file. |
 | `hermes-scout index [PATH]` | Build or refresh the index ahead of time. |
+| `hermes-scout doctor` | Check the embeddings server, the model and keyword search, and say how to fix what fails. |
+| `hermes-scout status` | List the indexed folders with file and chunk counts. |
+| `hermes-scout clear PATH` | Forget a folder's index (`--all` for every folder). |
 | `hermes-scout --version` | Print the version. |
 
 Point it at another server with `--base-url` and `--model`, or the `SCOUT_BASE_URL` and
 `SCOUT_MODEL` environment variables. Hosted endpoints read their key from `SCOUT_API_KEY`. The
 index lives in your user cache folder (`~/.cache/hermes-scout/index.db` on Linux). Full reference:
 [Command line docs](https://shizoqua.github.io/hermes-scout/cli/).
+
+## In Hermes: the `/scout` command
+
+| Command | What it does |
+|---|---|
+| `/scout doctor` | Checks the embeddings server, the model and keyword search in one go, with the fix for anything that fails. |
+| `/scout status` | Lists the indexed folders with file and chunk counts. |
+| `/scout index [folder]` | Builds or refreshes a folder's index now, so the first search is instant. |
+| `/scout clear <folder>`, `/scout clear all` | Forgets a folder's index, or every index. |
+
+The plugin also ships a `scout` skill that tells the agent when searching by meaning beats a plain
+text search, and how to narrow and cite results.
 
 ## Example
 
@@ -252,6 +269,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 
 | Message | Fix |
 |---|---|
+| Not sure what is wrong | Run `/scout doctor` in Hermes or `hermes-scout doctor` in a terminal. It checks everything and names the fix. |
 | `cannot reach the embeddings server at http://localhost:11434/v1` | Start Ollama (`ollama serve`) or point `base_url` at your server. |
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
@@ -265,7 +283,9 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
   that service receives the text of the files you search.
 - **Files read:** text files under the folder the model asks to search, minus the skipped paths
   listed above. The plugin never writes to that folder.
-- **Files written:** the index database in the plugin's own data folder only.
+- **Files written:** the index database in the plugin's own data folder only. `/scout clear`
+  deletes rows from it; nothing else is ever deleted.
+- **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.
 - **Credentials:** the optional API key is read through Hermes's secret store and sent only to the
   configured endpoint. It is dropped if the endpoint redirects to another origin.
 - No telemetry, no background processes, no shell commands, no self-updating.
@@ -320,7 +340,15 @@ problems privately as described in [SECURITY.md](SECURITY.md). Release notes liv
 
 If hermes-scout is useful to you, a star helps other people find it.
 
-[![Star history](https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Date)](https://star-history.com/#Shizoqua/hermes-scout&Date)
+## Star History
+
+<a href="https://star-history.com/#Shizoqua/hermes-scout&Timeline">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline" />
+    <img alt="Star history of hermes-scout" src="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline&theme=dark" />
+  </picture>
+</a>
 
 ## License
 

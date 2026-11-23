@@ -130,6 +130,31 @@ def has_keyword_index(conn: sqlite3.Connection) -> bool:
     return row is not None
 
 
+def index_overview(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """One entry per indexed folder and embedding model: file and chunk counts, largest first."""
+    rows = conn.execute(
+        "SELECT f.root, f.model, COUNT(*),"
+        " (SELECT COUNT(*) FROM chunks c WHERE c.root = f.root AND c.model = f.model)"
+        " FROM files f GROUP BY f.root, f.model ORDER BY 4 DESC, 1"
+    ).fetchall()
+    return [{"root": root, "model": model, "files": files, "chunks": chunks} for root, model, files, chunks in rows]
+
+
+def clear_index(conn: sqlite3.Connection, root: Path | None = None) -> int:
+    """Forget the index of ``root`` (every model), or of every folder when ``root`` is None.
+    Returns the number of files forgotten. The next search of a folder indexes it again."""
+    where, params = ("WHERE root = ?", (str(root),)) if root is not None else ("", ())
+    with conn:
+        forgotten = conn.execute(f"SELECT COUNT(*) FROM files {where}", params).fetchone()[0]
+        if has_keyword_index(conn):
+            conn.execute(f"DELETE FROM {_FTS_TABLE} WHERE rowid IN (SELECT rowid FROM chunks {where})", params)
+        conn.execute(f"DELETE FROM chunks {where}", params)
+        conn.execute(f"DELETE FROM files {where}", params)
+    conn.execute("VACUUM")
+    ensure_schema(conn)  # VACUUM may renumber chunk rowids; this re-aligns the keyword index
+    return int(forgotten)
+
+
 def _delete_chunks(conn: sqlite3.Connection, key: str, model: str, rel: str, fts: bool) -> None:
     where = "root = ? AND model = ? AND path = ?"
     if fts:

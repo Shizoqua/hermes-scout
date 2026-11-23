@@ -166,3 +166,23 @@ def test_without_fts5_the_command_line_notes_the_fallback(server, notes, tmp_pat
     assert code == 0 and "note: Keyword search is not available" in err
     payload = json.loads(out)
     assert payload["ranking"] == "semantic" and payload["note"] == cli.engine.NO_KEYWORD_NOTE
+
+
+def test_doctor_status_and_clear(server, notes, tmp_path, capsys):
+    index = str(tmp_path / "i.db")
+    code, out, _ = _run(capsys, "doctor", "--base-url", server["url"], "--index", index)
+    assert code == 0 and "All checks passed." in out
+    code, out, _ = _run(capsys, "status", "--index", index)
+    assert code == 0 and "No folders indexed yet" in out
+    _run(capsys, "index", str(notes), "--base-url", server["url"], "--index", index)
+    code, out, _ = _run(capsys, "status", "--index", index)
+    assert "2 files" in out
+    code, out, _ = _run(capsys, "clear", str(notes), "--index", index)
+    assert code == 0 and "(2 files)" in out
+    code, _, err = _run(capsys, "clear", "--index", index)
+    assert code == 2 and "FOLDER or --all" in err
+
+
+def test_doctor_fails_when_the_server_is_down(tmp_path, capsys):
+    code, out, _ = _run(capsys, "doctor", "--base-url", "http://127.0.0.1:9/v1", "--index", str(tmp_path / "i.db"))
+    assert code == 1 and "FAIL  Embeddings" in out

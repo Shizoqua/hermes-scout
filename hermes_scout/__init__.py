@@ -14,7 +14,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from . import embeddings, engine, patterns, schemas
+from . import checks, embeddings, engine, patterns, schemas
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +66,14 @@ def _read_blocked(path: Path) -> str | None:
     return error
 
 
-def _connect() -> sqlite3.Connection:
+def _index_path() -> Path:
     from plugins.plugin_storage import plugin_data_dir
 
-    conn = sqlite3.connect(plugin_data_dir(PLUGIN_ID) / "index.db", timeout=30)
+    return Path(plugin_data_dir(PLUGIN_ID)) / "index.db"
+
+
+def _connect() -> sqlite3.Connection:
+    conn = sqlite3.connect(_index_path(), timeout=30)
     engine.ensure_schema(conn)
     return conn
 
@@ -223,6 +227,76 @@ def _make_handler(ctx: Any, name: str, run: Callable[[Any, dict[str, Any]], dict
     return handler
 
 
+COMMAND_HELP = """/scout status: list the indexed folders
+/scout doctor: check the embeddings server, the model and keyword search
+/scout index [folder]: build or refresh a folder's index now (default: the working directory)
+/scout clear [folder|all]: forget a folder's index, or every index"""
+
+
+def _command(ctx: Any, raw_args: str) -> str:
+    """``/scout``: status, health checks and index upkeep without asking the model."""
+    action, _, rest = (raw_args or "").strip().partition(" ")
+    action, rest = action.lower(), rest.strip()
+    try:
+        if action == "status":
+            conn = _connect()
+            try:
+                return checks.format_status(conn)
+            finally:
+                conn.close()
+        if action == "doctor":
+            model, embed = _embedder(ctx)
+            conn = _connect()
+            try:
+                found = checks.run_checks(
+                    base_url=_setting(ctx, "base_url"), model=model, embed=embed, conn=conn, index_path=_index_path()
+                )
+            finally:
+                conn.close()
+            return checks.format_checks(found)
+        if action == "index":
+            prepared = _prepare(ctx, {"path": rest or None})
+            if isinstance(prepared, dict):
+                return f"error: {prepared['error']}"
+            root, *_, conn, stats = prepared
+            conn.close()
+            return (
+                f"{root}: indexed {stats['indexed_files']} new or changed files, reused {stats['reused_files']}, "
+                f"removed {stats['removed_files']}; {stats['chunks']} chunks in the index."
+            )
+        if action == "clear":
+            if not rest:
+                return "Say which index to forget: /scout clear <folder>, or /scout clear all"
+            target: Path | None = None if rest.lower() == "all" else _resolve_root(rest)
+            conn = _connect()
+            try:
+                with _INDEX_LOCK:
+                    forgotten = engine.clear_index(conn, target)
+            finally:
+                conn.close()
+            where = "every folder" if target is None else str(target)
+            return f"Forgot the index of {where} ({forgotten} files). The next search indexes it again."
+    except embeddings.EmbeddingError as err:
+        return f"error: {err}"
+    except (OSError, ValueError, sqlite3.Error) as err:
+        logger.warning("/scout %s failed", action, exc_info=True)
+        return f"error: /scout {action} failed: {err}"
+    return COMMAND_HELP
+
+
+_SKILL_MD = Path(__file__).parent / "skills" / "scout" / "SKILL.md"
+
+
+def _register_skill(ctx: Any) -> None:
+    """The bundled skill, on Hermes versions that support plugin skills; never fatal."""
+    if not hasattr(ctx, "register_skill") or not _SKILL_MD.is_file():
+        return
+    try:
+        ctx.register_skill("scout", _SKILL_MD, description="When to search local files with the scout tools")
+    except Exception:  # a skill must never take the tools down
+        logger.debug("hermes-scout skill not registered", exc_info=True)
+
+
 def register(ctx: Any) -> None:
     ctx.register_tool(
         name="scout_search",
@@ -240,3 +314,11 @@ def register(ctx: Any) -> None:
         description="Find files related to a file or passage",
         emoji="🧭",
     )
+    if hasattr(ctx, "register_command"):
+        ctx.register_command(
+            "scout",
+            handler=lambda raw_args="": _command(ctx, raw_args),
+            description="hermes-scout index status, health checks and upkeep",
+            args_hint="[status|doctor|index [folder]|clear <folder|all>]",
+        )
+    _register_skill(ctx)

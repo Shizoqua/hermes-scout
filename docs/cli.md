@@ -49,6 +49,23 @@ Each related file appears once, with its best-matching passage; the source file 
 hermes-scout index ~/project
 ```
 
+## Check your setup
+
+```bash
+hermes-scout doctor
+```
+
+Checks the embeddings server, the model and keyword search, and prints the fix for anything that
+fails. It exits with status 1 when a check fails, so scripts can use it.
+
+## Manage the index
+
+```bash
+hermes-scout status            # indexed folders with file and chunk counts
+hermes-scout clear ~/project   # forget one folder's index
+hermes-scout clear --all       # forget every index
+```
+
 ## Options
 
 | Flag | Environment variable | Default |

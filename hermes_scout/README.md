@@ -65,6 +65,15 @@ Edit them in the Desktop app (**Settings, Plugins, hermes-scout**) or with
 
 Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compatible APIs.
 
+## Commands
+
+- `/scout doctor`: check the embeddings server, the model and keyword search, with fixes.
+- `/scout status`: list the indexed folders.
+- `/scout index [folder]`: build or refresh a folder's index now.
+- `/scout clear <folder|all>`: forget a folder's index, or every index.
+
+A bundled `scout` skill tells the agent when to search by meaning and how to cite results.
+
 ## Disclosure
 
 - **Network:** file chunks and search queries are sent to the embeddings endpoint you configure.
@@ -73,7 +82,9 @@ Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compati
 - **Files read:** text files under the folder Hermes asks to search. Hidden files, dependency and
   build folders, anything a `.gitignore` ignores, binaries, oversized files and every path Hermes's
   file tools refuse (such as `.env` files) are skipped. The plugin never writes to that folder.
-- **Files written:** the index database in the plugin's own data folder only.
+- **Files written:** the index database in the plugin's own data folder only. `/scout clear`
+  deletes rows from it; nothing else is ever deleted.
+- **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.
 - **Credentials:** the optional `SCOUT_API_KEY` is read through Hermes's secret store and sent only
   to the configured endpoint. It is dropped if the endpoint redirects to another origin.
 - No telemetry, no background processes, no shell commands.
