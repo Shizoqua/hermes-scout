@@ -38,12 +38,13 @@ SCOUT_SEARCH: dict[str, Any] = {
             },
             "path": _PATH,
             "glob": _GLOB,
-            "mode": {
+            "ranking": {
                 "type": "string",
                 "enum": ["hybrid", "semantic", "keyword"],
                 "description": (
-                    "'hybrid' (default) ranks by meaning and exact words together, best for names, error "
-                    "codes and identifiers; 'semantic' by meaning only; 'keyword' by exact words only."
+                    "'hybrid' ranks by meaning and exact words together, best for names, error codes and "
+                    "identifiers; 'semantic' by meaning only; 'keyword' by exact words only. Defaults to the "
+                    "plugin's ranking setting (hybrid unless changed)."
                 ),
             },
             "top_k": _TOP_K,

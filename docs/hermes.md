@@ -33,7 +33,7 @@ hermes plugins enable hermes-scout
 | `path` | Folder to search; relative paths resolve against the agent's working directory. |
 | `top_k` | Passages to return, 1 to 20. |
 | `glob` | Only search matching files, such as `*.md`, `docs/` or `src/**/*.py`; separate several with commas. |
-| `mode` | `hybrid` (default): meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only. |
+| `ranking` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only. Defaults to the `ranking` setting. |
 
 ## Find related files
 

@@ -49,3 +49,8 @@ config_schema:
     default: true
     label: Respect .gitignore
     description: "Skip files and folders that .gitignore files in the searched folder ignore"
+  ranking:
+    type: str
+    default: hybrid
+    label: Ranking
+    description: "hybrid: meaning and exact words together (default). semantic: meaning only. keyword: exact words only"

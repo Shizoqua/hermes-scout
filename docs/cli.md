@@ -27,9 +27,10 @@ Limit a search to some files with `-g` (repeatable):
 hermes-scout search "retry policy" ~/project -g "*.md" -g "src/**/*.py"
 ```
 
-By default a search ranks by meaning and by exact words together (`--mode hybrid`). Use
-`--mode semantic` for meaning only, or `--mode keyword` for exact words only, which needs no
-embeddings server for the query.
+By default a search ranks by meaning and by exact words together (`--ranking hybrid`). Use
+`--ranking semantic` for meaning only, or `--ranking keyword` for exact words only, which needs no
+embeddings server for the query. If Python's SQLite lacks full-text search (FTS5), the search falls
+back to meaning only and prints a one-line note.
 
 ## Find similar files
 
@@ -61,6 +62,6 @@ hermes-scout index ~/project
 | `--max-file-kb` | (none) | `1000` |
 | `--no-gitignore` | (none) | off: files `.gitignore` ignores are skipped |
 | `-g`, `--glob` | (none) | every indexed file |
-| `--mode` (search) | (none) | `hybrid` |
+| `--ranking` (search) | (none) | `hybrid` |
 
 Exit codes: `0` success, `1` the embeddings server failed, `2` the folder does not exist.

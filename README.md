@@ -133,7 +133,7 @@ $ hermes-scout search "how does the client handle rate limiting" ~/project
 
 | Command | What it does |
 |---|---|
-| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--mode keyword` for exact words only, `--json` for scripts. |
+| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--ranking keyword` for exact words only, `--json` for scripts. |
 | `hermes-scout similar FILE --in FOLDER` | Files most related to `FILE` (or `--text "..."`); `--lines 10-40` for part of a file. |
 | `hermes-scout index [PATH]` | Build or refresh the index ahead of time. |
 | `hermes-scout --version` | Print the version. |
@@ -204,8 +204,10 @@ flowchart LR
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
    (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
    rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
-   shares exact words (a function name, an error code, a ticket ID) comes first. Use `mode` to rank
-   by meaning only (`semantic`) or by words only (`keyword`).
+   shares exact words (a function name, an error code, a ticket ID) comes first. The `ranking`
+   setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
+   words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
+   meaning only and says so in a one-line note.
 5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
    returns the other files whose best passage is closest, one result per file.
 
@@ -244,6 +246,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
+| `ranking` | `hybrid` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
 
@@ -282,7 +285,7 @@ or network access:
 
 ```bash
 python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
-python -m pytest --cov=hermes_scout     # 104 tests, no network
+python -m pytest --cov=hermes_scout     # 111 tests, no network
 ruff check . && ruff format --check .
 mypy                                    # strict type check
 ```
