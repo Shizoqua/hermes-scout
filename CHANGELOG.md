@@ -6,14 +6,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Documentation
-
-- README: what's new, example questions, what hermes-scout is and is not, screenshots of real
-  output, and a PRIVACY.md that answers what is read, stored and sent.
-- Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
-- Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
-- Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
-- Clarified first-run setup checks for both Hermes and CLI users, with example filtered and keyword searches in the README.
+## [0.4.0] - 2026-11-23
 
 ### Added
 
@@ -29,13 +22,6 @@ All notable changes to this project are documented here. The format follows
   `scripts/benchmark.py`, which reports hit@1, hit@5 and MRR for each ranking mode. A `benchmark`
   workflow runs it against a real model in a pinned Ollama container.
 
-### Fixed
-
-- The command line no longer sends `SCOUT_API_KEY` to another site when a hosted embeddings server
-  redirects there; the key now follows redirects only within the same origin, as it already did
-  inside Hermes.
-- The "cannot reach the embeddings server" hint names `--base-url` for command line users.
-
 ### Changed
 
 - Hybrid ranking ignores filler words such as "how" and "the" in the keyword half.
@@ -43,6 +29,22 @@ All notable changes to this project are documented here. The format follows
   measured as the most accurate for them; queries made only of code-like names such as `ERR_4291`
   merge both rankings by score (relative score fusion) with keywords at 75%, so exact names still
   come first when the embedding model blurs them.
+
+### Fixed
+
+- The command line no longer sends `SCOUT_API_KEY` to another site when a hosted embeddings server
+  redirects there; the key now follows redirects only within the same origin, as it already did
+  inside Hermes.
+- The "cannot reach the embeddings server" hint names `--base-url` for command line users.
+
+### Documentation
+
+- README: what's new, example questions, what hermes-scout is and is not, screenshots of real
+  output, and a PRIVACY.md that answers what is read, stored and sent.
+- Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
+- Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
+- Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
+- Clarified first-run setup checks for both Hermes and CLI users, with example filtered and keyword searches in the README.
 
 ## [0.3.0] - 2026-11-23
 
@@ -105,7 +107,8 @@ All notable changes to this project are documented here. The format follows
 - Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
   coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
 
-[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...v0.1.1
