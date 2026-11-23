@@ -308,7 +308,17 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
 | No results for files you expected | Check the file's extension, size (`max_file_kb`), that it is not hidden or in a skipped folder, and that no `.gitignore` ignores it. |
+| Search returns fewer files than expected | Check whether the folder contains more than `max_files` (2,000 by default) or whether the file exceeds `max_file_kb` (1,000 KB by default). Narrow the folder or adjust those limits. |
 | The first search is slow | Expected for a large folder: every file is embedded once. Later searches only embed changes. |
+
+If the server check fails, first confirm your embedding service is running. For the default
+Ollama setup, `ollama list` shows your installed models; if `nomic-embed-text` is missing,
+run `ollama pull nomic-embed-text`. Then run `hermes-scout doctor` again (or `/scout doctor`
+inside Hermes).
+
+If a search returns nothing, try the folder without a `-g` filter and check whether the file
+is excluded by `.gitignore`. Hidden files, symlinks and binary files are not indexed even when
+a search filter would match their names.
 
 ## Disclosure
 

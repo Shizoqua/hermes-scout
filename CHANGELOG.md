@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Documentation
 
+- Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
 - Clarified first-run setup checks for both Hermes and CLI users, with example filtered and keyword searches in the README.
 
 ### Added
