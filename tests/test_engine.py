@@ -252,6 +252,13 @@ def test_keyword_search_stems_words(mixed, conn):
     assert [r["path"] for r in results] == ["backoff.md"]
 
 
+def test_hybrid_ranks_a_question_in_words_by_meaning(mixed, conn):
+    vec = _rule_embed(["how does the client back off"])[0]
+    query = "where is the quota exhausted error raised"
+    semantic = engine.search(conn, mixed, "rule", vec, 3, query=query, ranking="semantic")
+    assert engine.search(conn, mixed, "rule", vec, 3, query=query) == semantic
+
+
 def test_hybrid_without_query_text_is_semantic(mixed, conn):
     vec = _rule_embed(["ERR_4291"])[0]
     assert engine.search(conn, mixed, "rule", vec, 1)[0]["path"] == "backoff.md"

@@ -102,11 +102,10 @@ RANKINGS = ("hybrid", "semantic", "keyword")
 NO_KEYWORD_NOTE = (
     "Keyword search is not available in this Python's SQLite (no FTS5), so results are ranked by meaning only."
 )
-# Hybrid ranking scales each ranking's scores to 0..1 over its candidates and adds them (relative
-# score fusion). Questions weight meaning at 0.75, the common default, so a clear lead in meaning
-# survives and exact words break near ties. Queries made only of code-like names (ERR_4291,
-# pg_dump, getUserById) flip the weights, since embedding models often blur such names.
-_MEANING_WEIGHT = 0.75
+# Hybrid ranking routes by query: questions in words are ranked by meaning, which the benchmark
+# measured as the most accurate for them; queries made only of code-like names (ERR_4291, pg_dump,
+# getUserById), which embedding models often blur, merge both rankings by score with keywords at
+# 0.75 and meaning at 0.25 (relative score fusion).
 _CODE_MEANING_WEIGHT = 0.25
 _CODE_TERM = re.compile(r"\d|_|-|[a-z][A-Z]|^[A-Z]{2,}$")
 _KEYWORD_CANDIDATES = 200
@@ -466,10 +465,10 @@ def search(
     """The ``top_k`` best chunks for a query, best first, limited to files ``path_filter`` matches.
 
     ``semantic`` ranks by cosine similarity to ``query_vector``; ``keyword`` ranks the chunks that
-    contain ``query``'s words by BM25; ``hybrid`` (the default) merges both with relative score
-    fusion (see ``fuse_scores``), leaning on meaning for questions and on keywords for queries that
-    are only code-like names, so a chunk that is close in meaning *and* shares exact words (a name,
-    an error code) comes first. ``score`` is always the cosine similarity when there is a query vector.
+    contain ``query``'s words by BM25; ``hybrid`` (the default) ranks questions by meaning and, for
+    queries made only of code-like names (see ``looks_like_code``), merges both rankings with
+    keywords leading (see ``fuse_scores``), so an exact name or error code comes first even when the
+    embedding model blurs it. ``score`` is always the cosine similarity when there is a query vector.
     """
     if ranking not in RANKINGS:
         raise ValueError(f"ranking must be one of {', '.join(RANKINGS)}")
@@ -479,14 +478,15 @@ def search(
         _vector_scores(conn, root, model, query_vector, path_filter) if query_vector and ranking != "keyword" else []
     )
     cosine = {row[0]: score for score, row in vector}
-    if ranking == "semantic" or (ranking == "hybrid" and not query.strip()):
+    if ranking == "semantic" or (ranking == "hybrid" and not looks_like_code(query)):
         return [_result(row, score) for score, row in vector[:top_k]]
     keyword = _keyword_ranking(conn, root, model, query, path_filter)
     if ranking == "keyword":
         return [_result(row, cosine.get(row[0])) for _, row in keyword[:top_k]]
     rows = {row[0]: row for _, row in keyword} | {row[0]: row for _, row in vector}
-    weight = _CODE_MEANING_WEIGHT if looks_like_code(query) else _MEANING_WEIGHT
-    best = fuse_scores([(score, row[0]) for score, row in vector], [(score, row[0]) for score, row in keyword], weight)
+    best = fuse_scores(
+        [(score, row[0]) for score, row in vector], [(score, row[0]) for score, row in keyword], _CODE_MEANING_WEIGHT
+    )
     return [_result(rows[rowid], cosine.get(rowid)) for rowid in best[:top_k]]
 
 

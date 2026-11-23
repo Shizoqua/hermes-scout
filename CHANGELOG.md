@@ -20,9 +20,10 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - Hybrid ranking ignores filler words such as "how" and "the" in the keyword half.
-- Hybrid ranking merges by score instead of by rank (relative score fusion): each ranking is scaled
-  to 0..1 and weighted, meaning at 75% for questions and keywords at 75% for queries made only of
-  code-like names such as `ERR_4291`. Measured with the new benchmark.
+- Hybrid ranking picks by query: questions in words are ranked by meaning, which the new benchmark
+  measured as the most accurate for them; queries made only of code-like names such as `ERR_4291`
+  merge both rankings by score (relative score fusion) with keywords at 75%, so exact names still
+  come first when the embedding model blurs them.
 
 ## [0.3.0] - 2026-11-23
 

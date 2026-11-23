@@ -221,12 +221,11 @@ flowchart LR
 4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
    (SQLite full-text search with BM25 and word stemming, built alongside the vectors), leaving out
-   filler words such as "how" or "the" that appear everywhere. Each ranking's scores are scaled to
-   0..1 and added with weights (relative score fusion): questions count meaning at 75% and keywords
-   at 25%, so a clear lead in meaning holds while exact words break near ties; a query made only of
-   code-like names (`ERR_4291`, `pg_dump`, `getUserById`) flips that to 25% and 75%, because
-   embedding models often blur such names. The `ranking`
-   setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
+   filler words such as "how" or "the" that appear everywhere. The default `hybrid` ranking picks by
+   query: questions in words are ranked by meaning, which [the benchmark](#benchmark) measured as
+   the most accurate for them; a query made only of code-like names (`ERR_4291`, `pg_dump`,
+   `getUserById`), which embedding models often blur, merges both rankings by score with keywords
+   at 75% and meaning at 25%, so the exact name comes first. The `ranking` setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
    words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
    meaning only and says so in a one-line note.
 5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
@@ -281,7 +280,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `ranking` | `hybrid` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only |
+| `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
 
