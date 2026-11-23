@@ -382,3 +382,29 @@ def test_an_old_index_upgrades_without_re_embedding(tmp_path):
     results = engine.search(old, tmp_path, "toy", None, 5, query="budget", ranking="keyword")
     assert [r["path"] for r in results] == ["a.md"]
     old.close()
+
+
+def test_index_overview_and_clear(tmp_path):
+    conn = sqlite3.connect(":memory:")
+    engine.ensure_schema(conn)
+    roots = []
+    for name in ("one", "two"):
+        root = tmp_path / name
+        root.mkdir()
+        (root / "a.md").write_text("alpha beta", encoding="utf-8")
+        (root / "b.md").write_text("gamma delta", encoding="utf-8")
+        engine.update_index(conn, root, "m", toy_embed, sorted(root.iterdir()))
+        roots.append(root)
+    overview = engine.index_overview(conn)
+    assert sorted(f["root"] for f in overview) == sorted(str(r) for r in roots)
+    assert all(f["files"] == 2 and f["chunks"] == 2 for f in overview)
+
+    assert engine.clear_index(conn, roots[0]) == 2
+    assert [f["root"] for f in engine.index_overview(conn)] == [str(roots[1])]
+    vector = toy_embed(["gamma"])[0]
+    hits = engine.search(conn, roots[1], "m", vector, 5, query="gamma", ranking="hybrid")
+    assert hits[0]["path"] == "b.md"  # the keyword index still lines up after the clear
+
+    assert engine.clear_index(conn) == 2
+    assert engine.index_overview(conn) == []
+    conn.close()

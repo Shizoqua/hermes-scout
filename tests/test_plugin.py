@@ -13,12 +13,20 @@ class FakeCtx:
     def __init__(self, settings=None):
         self.settings = settings or {}
         self.tools = []
+        self.commands = {}
+        self.skills = []
 
     def get_config(self, key, default=None):
         return self.settings.get(key, default)
 
     def register_tool(self, **kwargs):
         self.tools.append(kwargs)
+
+    def register_command(self, name, handler, description="", args_hint=""):
+        self.commands[name] = handler
+
+    def register_skill(self, name, path, description=""):
+        self.skills.append((name, Path(path)))
 
 
 def _module(monkeypatch, name, **attrs):
@@ -216,3 +224,65 @@ def test_without_fts5_search_notes_the_fallback(plugin, monkeypatch):
     out = _call(plugin, {"query": "pasta", "path": "notes", "ranking": "keyword"})
     assert out["ranking"] == "semantic" and out["note"] == plugin.engine.NO_KEYWORD_NOTE
     assert out["results"]
+
+
+def _scout(plugin, raw_args):
+    ctx = FakeCtx()
+    plugin.register(ctx)
+    return ctx.commands["scout"](raw_args)
+
+
+def test_registers_the_scout_command_and_skill(plugin):
+    ctx = FakeCtx()
+    plugin.register(ctx)
+    assert set(ctx.commands) == {"scout"}
+    [(name, path)] = ctx.skills
+    assert name == "scout" and path.name == "SKILL.md" and path.is_file()
+    assert path.read_text(encoding="utf-8").startswith("---\nname: scout\n")
+
+
+def test_older_hermes_without_commands_or_skills_still_gets_the_tools(plugin):
+    class OldCtx:
+        def __init__(self):
+            self.tools = []
+
+        def get_config(self, key, default=None):
+            return default
+
+        def register_tool(self, **kwargs):
+            self.tools.append(kwargs)
+
+    ctx = OldCtx()
+    plugin.register(ctx)
+    assert len(ctx.tools) == 2
+
+
+def test_scout_command_index_status_and_clear(plugin):
+    (plugin.work / "a.md").write_text("alpha notes", encoding="utf-8")
+    assert "No folders indexed yet" in _scout(plugin, "status")
+    assert "indexed 1 new or changed files" in _scout(plugin, "index")
+    status = _scout(plugin, "status")
+    assert str(plugin.work.resolve()) in status and "1 files" in status
+    assert "Say which index" in _scout(plugin, "clear")
+    assert "(1 files)" in _scout(plugin, f"clear {plugin.work}")
+    assert "No folders indexed yet" in _scout(plugin, "status")
+    _scout(plugin, "index")
+    assert "every folder" in _scout(plugin, "clear all")
+
+
+def test_scout_command_doctor(plugin, monkeypatch):
+    report = _scout(plugin, "doctor")
+    assert "OK    Embeddings" in report and "All checks passed." in report
+
+    def unreachable(texts, **kwargs):
+        raise plugin.embeddings.EmbeddingError("cannot reach the embeddings server at http://x")
+
+    monkeypatch.setattr(plugin.embeddings, "embed_texts", unreachable)
+    report = _scout(plugin, "doctor")
+    assert "FAIL  Embeddings: cannot reach" in report and "1 check(s) failed" in report
+
+
+def test_scout_command_help_and_errors(plugin):
+    assert _scout(plugin, "") == plugin.COMMAND_HELP
+    assert _scout(plugin, "nonsense") == plugin.COMMAND_HELP
+    assert _scout(plugin, "index missing-folder").startswith("error: not a folder")

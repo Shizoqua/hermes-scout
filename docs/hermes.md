@@ -50,6 +50,23 @@ hermes plugins enable hermes-scout
 
 Each related file appears once, with its best-matching passage; the source file is never returned.
 
+## The `/scout` command
+
+| Command | What it does |
+|---|---|
+| `/scout doctor` | Checks the embeddings server, the model and keyword search, with the fix for anything that fails |
+| `/scout status` | Lists the indexed folders with file and chunk counts |
+| `/scout index [folder]` | Builds or refreshes a folder's index now (default: the working directory) |
+| `/scout clear <folder>`, `/scout clear all` | Forgets a folder's index, or every index |
+
+These run directly, without asking the model.
+
+## The `scout` skill
+
+The plugin ships a skill, `hermes-scout:scout`, that tells the agent when searching by meaning beats
+a plain text search, how to narrow a search with `glob`, and to open and cite the best file before
+answering.
+
 ## Settings
 
 Change them in the Desktop app (**Settings → Plugins → hermes-scout**) or with

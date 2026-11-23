@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `/scout` command in Hermes: `doctor` checks the embeddings server, the model and keyword search
+  and names the fix for anything that fails; `status` lists indexed folders; `index [folder]` builds
+  an index ahead of time; `clear <folder|all>` forgets an index.
+- `hermes-scout doctor`, `status` and `clear` on the command line, with the same checks.
+- A bundled `scout` skill that tells the agent when to search by meaning and how to cite results.
+
 ## [0.3.0] - 2026-11-23
 
 ### Added

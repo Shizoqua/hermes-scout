@@ -4,6 +4,9 @@
     hermes-scout search "backup schedule" ~/notes --glob "*.md"
     hermes-scout similar notes/backups.md --in ~/notes
     hermes-scout index ~/notes
+    hermes-scout doctor
+    hermes-scout status
+    hermes-scout clear ~/notes
 
 Settings come from flags, then the environment (SCOUT_BASE_URL, SCOUT_MODEL, SCOUT_API_KEY),
 then the defaults (a local Ollama server with nomic-embed-text).
@@ -19,7 +22,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from . import __version__, embeddings, engine, patterns
+from . import __version__, checks, embeddings, engine, patterns
 
 
 def default_index_path() -> Path:
@@ -82,7 +85,38 @@ def _parser() -> argparse.ArgumentParser:
 
     index = sub.add_parser("index", parents=[common], help="build or refresh the index for a folder")
     index.add_argument("path", nargs="?", default=".", help="folder to index (default: current folder)")
+
+    sub.add_parser("doctor", parents=[common], help="check the embeddings server, the model and keyword search")
+    sub.add_parser("status", parents=[common], help="list the indexed folders")
+    clear = sub.add_parser("clear", parents=[common], help="forget a folder's index (or every index with --all)")
+    clear.add_argument("path", nargs="?", help="folder whose index to forget")
+    clear.add_argument("--all", action="store_true", help="forget every folder's index")
     return parser
+
+
+def _maintenance(args: argparse.Namespace, embed: engine.Embedder) -> int:
+    """``doctor``, ``status`` and ``clear``: commands about the index rather than one folder's search."""
+    index_path = args.index or default_index_path()
+    if args.command == "clear" and bool(args.path) == bool(args.all):
+        print("error: give a FOLDER or --all", file=sys.stderr)
+        return 2
+    conn = _open_index(index_path)
+    try:
+        if args.command == "doctor":
+            found = checks.run_checks(
+                base_url=args.base_url, model=args.model, embed=embed, conn=conn, index_path=index_path
+            )
+            print(checks.format_checks(found))
+            return 0 if all(c.ok for c in found) else 1
+        if args.command == "status":
+            print(checks.format_status(conn))
+            return 0
+        root = None if args.all else Path(args.path).expanduser().resolve()
+        forgotten = engine.clear_index(conn, root)
+        print(f"Forgot the index of {'every folder' if root is None else root} ({forgotten} files).")
+        return 0
+    finally:
+        conn.close()
 
 
 def _open_index(path: Path) -> sqlite3.Connection:
@@ -133,14 +167,17 @@ def _similar(args: argparse.Namespace, conn: sqlite3.Connection, root: Path, emb
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    root = Path(args.path).expanduser().resolve()
-    if not root.is_dir():
-        print(f"error: not a folder: {root}", file=sys.stderr)
-        return 2
     api_key = os.environ.get("SCOUT_API_KEY") or None
 
     def embed(texts: list[str]) -> list[list[float]]:
         return embeddings.embed_texts(texts, base_url=args.base_url, model=args.model, api_key=api_key)
+
+    if args.command in ("doctor", "status", "clear"):
+        return _maintenance(args, embed)
+    root = Path(args.path).expanduser().resolve()
+    if not root.is_dir():
+        print(f"error: not a folder: {root}", file=sys.stderr)
+        return 2
 
     files = list(
         engine.iter_files(
