@@ -42,6 +42,7 @@ nav:
   - Command line: cli.md
   - Configuration: configuration.md
   - How it works: how-it-works.md
+  - Benchmark: benchmark.md
   - Troubleshooting: troubleshooting.md
   - Changelog: changelog.md
 

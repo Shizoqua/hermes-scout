@@ -17,6 +17,9 @@ All notable changes to this project are documented here. The format follows
   an index ahead of time; `clear <folder|all>` forgets an index.
 - `hermes-scout doctor`, `status` and `clear` on the command line, with the same checks.
 - A bundled `scout` skill that tells the agent when to search by meaning and how to cite results.
+- A retrieval benchmark: a synthetic project, 30 questions with known answers and
+  `scripts/benchmark.py`, which reports hit@1, hit@5 and MRR for each ranking mode. A `benchmark`
+  workflow runs it against a real model in a pinned Ollama container.
 
 ## [0.3.0] - 2026-11-23
 

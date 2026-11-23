@@ -53,6 +53,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [In Hermes: the /scout command](#in-hermes-the-scout-command)
 - [Example](#example)
 - [How it works](#how-it-works)
+- [Benchmark](#benchmark)
 - [Supported embedding servers](#supported-embedding-servers)
 - [Settings](#settings)
 - [Troubleshooting](#troubleshooting)
@@ -251,6 +252,20 @@ Indexes for different embedding models are kept apart, so switching models never
 `.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...). **Skipped:** hidden files and folders, dependency and
 build folders (`node_modules`, `venv`, `dist`, `build`, ...), anything a `.gitignore` file ignores,
 symlinks, binary files, files over the size limit, and every path Hermes's file tools refuse to read.
+
+## Benchmark
+
+On a synthetic project of 23 files with 30 questions whose answer is known, using `nomic-embed-text`
+on Ollama ([details and method](https://shizoqua.github.io/hermes-scout/benchmark/)):
+
+| Ranking | Right file first | Right file in top 5 |
+|---|---|---|
+| Meaning (`semantic`) | 93% | 100% |
+| Meaning and keywords (`hybrid`) | 77% | 93% |
+| Keywords only (`keyword`) | 60% | 87% |
+
+Exact names and error codes are found first in every mode. Questions worded differently from the
+answer are where meaning-based search pays off: 89% first-place hits against 33% for keywords alone.
 
 ## Supported embedding servers
 
