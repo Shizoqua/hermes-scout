@@ -427,7 +427,7 @@ only the Python standard library and do not import Hermes, so the tests run with
 or network access:
 
 ```bash
-python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
+python -m pip install --require-hashes -r .github/requirements/test.txt -r .github/requirements/lint.txt
 python -m pytest --cov=hermes_scout     # 111 tests, no network
 ruff check . && ruff format --check .
 mypy                                    # strict type check
@@ -452,7 +452,9 @@ hermes plugins doctor hermes_scout --ci
 
 Every push runs lint, a strict type check, the tests on Linux, macOS and Windows with Python 3.11
 to 3.14 and a 90% coverage floor, CodeQL security analysis, an OpenSSF Scorecard rating and a strict
-docs build. Publishing a GitHub release uploads the package to PyPI.
+docs build. The PDF and Word readers are fuzzed with Atheris every week and on every change to
+them. CI tools are installed from hash-locked files in `.github/requirements/` (kept current by
+Dependabot). Publishing a GitHub release uploads the package to PyPI.
 
 ## Contributing
 

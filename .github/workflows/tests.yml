@@ -18,14 +18,12 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.13"
-      - name: Install ruff
-        run: python -m pip install "ruff==0.15.10"
+      - name: Install ruff and mypy
+        run: python -m pip install --require-hashes -r .github/requirements/lint.txt
       - name: Lint
         run: ruff check .
       - name: Formatting
         run: ruff format --check .
-      - name: Install mypy
-        run: python -m pip install "mypy==1.18.2"
       - name: Type check
         run: mypy
 
@@ -50,6 +48,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install test tools
-        run: python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8"
+        run: python -m pip install --require-hashes -r .github/requirements/test.txt
       - name: Run tests with coverage
         run: python -m pytest tests -q --cov=hermes_scout --cov-report=term-missing --cov-fail-under=90

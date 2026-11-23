@@ -167,12 +167,13 @@ def _parse_lines(raw: Any) -> tuple[int, int] | None:
     if not text:
         return None
     first, _, last = text.partition("-")
+    problem = f"lines must look like '10-40', got {text!r}"
     try:
         start, end = int(first), int(last or first)
     except ValueError:
-        start = end = 0
+        raise ValueError(problem) from None
     if start < 1 or end < start:
-        raise ValueError(f"lines must look like '10-40', got {text!r}")
+        raise ValueError(problem)
     return start, end
 
 
