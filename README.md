@@ -111,7 +111,13 @@ embedding vectors, and the passages pointing in the most similar direction come 
    pipx install hermes-scout      # or: pip install hermes-scout
    ```
 
-3. **Search.** Ask Hermes:
+3. **Check the setup** (optional, if your first search fails):
+
+   ```bash
+   hermes-scout doctor
+   ```
+
+4. **Search.** Ask Hermes:
 
    > Search my notes in ~/notes for how I set up backups.
 
