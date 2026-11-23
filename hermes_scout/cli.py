@@ -70,7 +70,7 @@ def _parser() -> argparse.ArgumentParser:
         "--ranking",
         choices=engine.RANKINGS,
         default="hybrid",
-        help="hybrid: meaning and exact words together (default); semantic: meaning only; keyword: words only",
+        help="hybrid: meaning, exact words first for code names (default); semantic: meaning; keyword: words",
     )
     search.add_argument("--json", action="store_true", help="print the result as JSON")
 
