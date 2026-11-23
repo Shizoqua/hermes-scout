@@ -3,6 +3,7 @@
 import json
 import sys
 import types
+from pathlib import Path
 
 import pytest
 from test_engine import toy_embed
@@ -61,19 +62,23 @@ def plugin(tmp_path, monkeypatch):
     return module
 
 
-def _call(plugin, args, settings=None):
+def _call(plugin, args, settings=None, tool="scout_search"):
     ctx = FakeCtx(settings)
     plugin.register(ctx)
-    [tool] = ctx.tools
-    return json.loads(tool["handler"](args))
+    [found] = [t for t in ctx.tools if t["name"] == tool]
+    return json.loads(found["handler"](args))
 
 
-def test_registers_exactly_the_declared_tool(plugin):
+def test_registers_exactly_the_declared_tools(plugin):
     ctx = FakeCtx()
     plugin.register(ctx)
-    [tool] = ctx.tools
-    assert (tool["name"], tool["schema"]["name"]) == ("scout_search", "scout_search")
-    assert tool["schema"]["parameters"]["required"] == ["query"]
+    assert [(t["name"], t["schema"]["name"], t["toolset"]) for t in ctx.tools] == [
+        ("scout_search", "scout_search", "hermes_scout"),
+        ("scout_similar", "scout_similar", "hermes_scout"),
+    ]
+    manifest = (Path(plugin.__file__).parent / "plugin.yaml").read_text(encoding="utf-8")
+    assert "  - scout_search\n  - scout_similar\n" in manifest
+    assert ctx.tools[0]["schema"]["parameters"]["required"] == ["query"]
 
 
 def test_search_resolves_relative_paths_and_ranks_results(plugin):
@@ -143,3 +148,54 @@ def test_glob_filters_results_and_gitignore_is_respected(plugin):
     assert [r["path"] for r in out["results"]] == ["docs/a.md"] and out["glob"] == ["*.md"]
     out = _call(plugin, {"query": "alpha", "glob": "*.md"}, {"respect_gitignore": "false"})
     assert sorted(r["path"] for r in out["results"]) == ["docs/a.md", "private/a.md"]
+
+
+def _notes(plugin):
+    folder = plugin.work / "notes"
+    folder.mkdir()
+    (folder / "retries.md").write_text("The client retries after a 429 rate limit.", encoding="utf-8")
+    (folder / "limits.md").write_text("Rate limit windows reset every minute.", encoding="utf-8")
+    (folder / "pasta.md").write_text("Boil pasta in salted water.", encoding="utf-8")
+    return folder
+
+
+def test_search_modes(plugin):
+    _notes(plugin)
+    out = _call(plugin, {"query": "pasta", "path": "notes", "mode": "keyword"})
+    assert out["mode"] == "keyword" and [r["path"] for r in out["results"]] == ["pasta.md"]
+    out = _call(plugin, {"query": "rate limit", "path": "notes"})
+    assert out["mode"] == "hybrid" and out["results"][0]["path"] in {"retries.md", "limits.md"}
+    assert "mode must be one of" in _call(plugin, {"query": "x", "mode": "fuzzy"})["error"]
+
+
+def test_similar_from_a_file_skips_the_file_itself(plugin):
+    _notes(plugin)
+    out = _call(plugin, {"file": "retries.md", "path": "notes", "top_k": 2}, tool="scout_similar")
+    assert out["source"] == {"file": "retries.md", "lines": None}
+    assert [r["path"] for r in out["results"]] == ["limits.md", "pasta.md"]
+    out = _call(plugin, {"file": "retries.md", "lines": "1-1", "path": "notes"}, tool="scout_similar")
+    assert out["source"]["lines"] == "1-1" and "retries.md" not in [r["path"] for r in out["results"]]
+
+
+def test_similar_from_text(plugin):
+    _notes(plugin)
+    out = _call(plugin, {"text": "salted pasta water", "path": "notes", "top_k": 1}, tool="scout_similar")
+    assert out["source"] == {"text": "salted pasta water"} and out["results"][0]["path"] == "pasta.md"
+
+
+@pytest.mark.parametrize(
+    "args,message",
+    [
+        ({}, "give either file"),
+        ({"file": "a.md", "text": "x"}, "give either file"),
+        ({"file": "retries.md", "lines": "9-2"}, "lines must look like"),
+        ({"file": "retries.md", "lines": "x"}, "lines must look like"),
+        ({"file": "../outside.md"}, "not inside the folder"),
+        ({"file": "missing.md"}, "is not in the index"),
+        ({"file": "retries.md", "path": "missing-folder"}, "not a folder"),
+    ],
+)
+def test_similar_rejects_bad_input(plugin, args, message):
+    _notes(plugin)
+    out = _call(plugin, {"path": "notes", **args}, tool="scout_similar")
+    assert message in out["error"]

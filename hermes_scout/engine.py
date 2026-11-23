@@ -9,6 +9,7 @@ from __future__ import annotations
 import array
 import math
 import os
+import re
 import sqlite3
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -93,8 +94,46 @@ CREATE INDEX IF NOT EXISTS chunks_by_file ON chunks (root, model, path);
 """
 
 
+# Keyword index for hybrid search: SQLite's built-in full-text search, keyed by the chunk's rowid.
+# Python's sqlite3 ships with FTS5 on every mainstream platform; without it, search falls back to
+# meaning alone.
+_FTS_TABLE = "chunks_fts"
+SEARCH_MODES = ("hybrid", "semantic", "keyword")
+_RRF_K = 60  # reciprocal rank fusion constant; 60 is the value from the original paper
+_KEYWORD_CANDIDATES = 200
+_WORD = re.compile(r"\w+", re.UNICODE)
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(_SCHEMA)
+    try:
+        with conn:
+            conn.execute(
+                f"CREATE VIRTUAL TABLE IF NOT EXISTS {_FTS_TABLE} USING fts5(text, tokenize='porter unicode61')"
+            )
+            # Rebuild the keyword rows when they do not line up with the chunks: an index built before
+            # keyword search existed, or one whose rowids were renumbered (for example by VACUUM).
+            chunks = conn.execute("SELECT COUNT(*), COALESCE(SUM(rowid), 0) FROM chunks").fetchone()
+            keyword = conn.execute(f"SELECT COUNT(*), COALESCE(SUM(rowid), 0) FROM {_FTS_TABLE}").fetchone()
+            if chunks != keyword:
+                conn.execute(f"DELETE FROM {_FTS_TABLE}")
+                conn.execute(f"INSERT INTO {_FTS_TABLE} (rowid, text) SELECT rowid, text FROM chunks")
+    except sqlite3.OperationalError:
+        pass  # no FTS5 in this SQLite build: search uses meaning alone
+
+
+def has_keyword_index(conn: sqlite3.Connection) -> bool:
+    row = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (_FTS_TABLE,)).fetchone()
+    return row is not None
+
+
+def _delete_chunks(conn: sqlite3.Connection, key: str, model: str, rel: str, fts: bool) -> None:
+    where = "root = ? AND model = ? AND path = ?"
+    if fts:
+        conn.execute(
+            f"DELETE FROM {_FTS_TABLE} WHERE rowid IN (SELECT rowid FROM chunks WHERE {where})", (key, model, rel)
+        )
+    conn.execute(f"DELETE FROM chunks WHERE {where}", (key, model, rel))
 
 
 def chunk_text(text: str, max_chars: int = 1200, overlap_lines: int = 2) -> list[tuple[int, int, str]]:
@@ -233,6 +272,7 @@ def update_index(
         for row in conn.execute("SELECT path, mtime_ns, size FROM files WHERE root = ? AND model = ?", (key, model))
     }
     stats = {"indexed_files": 0, "reused_files": 0, "removed_files": 0}
+    fts = has_keyword_index(conn)
     seen: set[str] = set()
     for path in files:
         rel = path.relative_to(root).as_posix()
@@ -247,7 +287,7 @@ def update_index(
         chunks = chunk_text(path.read_text(encoding="utf-8", errors="replace"), max_chars=max_chars)
         vectors = _embed_all(embedder, [text for _, _, text in chunks], batch_size) if chunks else []
         with conn:
-            conn.execute("DELETE FROM chunks WHERE root = ? AND model = ? AND path = ?", (key, model, rel))
+            _delete_chunks(conn, key, model, rel, fts)
             conn.executemany(
                 "INSERT INTO chunks (root, model, path, start_line, end_line, text, vec, norm)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -256,6 +296,12 @@ def update_index(
                     for (start, end, text), vec in zip(chunks, vectors, strict=True)
                 ],
             )
+            if fts:
+                conn.execute(
+                    f"INSERT INTO {_FTS_TABLE} (rowid, text)"
+                    " SELECT rowid, text FROM chunks WHERE root = ? AND model = ? AND path = ?",
+                    (key, model, rel),
+                )
             conn.execute(
                 "INSERT OR REPLACE INTO files (root, model, path, mtime_ns, size) VALUES (?, ?, ?, ?, ?)",
                 (key, model, rel, st.st_mtime_ns, st.st_size),
@@ -264,7 +310,7 @@ def update_index(
     gone = [rel for rel in known if rel not in seen]
     with conn:
         for rel in gone:
-            conn.execute("DELETE FROM chunks WHERE root = ? AND model = ? AND path = ?", (key, model, rel))
+            _delete_chunks(conn, key, model, rel, fts)
             conn.execute("DELETE FROM files WHERE root = ? AND model = ? AND path = ?", (key, model, rel))
     stats["removed_files"] = len(gone)
     stats["chunks"] = conn.execute("SELECT COUNT(*) FROM chunks WHERE root = ? AND model = ?", (key, model)).fetchone()[
@@ -273,34 +319,152 @@ def update_index(
     return stats
 
 
-def search(
+Row = tuple[int, str, int, int, str]  # rowid, path, start line, end line, text
+
+
+def _vector_scores(
     conn: sqlite3.Connection,
     root: Path,
     model: str,
     query_vector: list[float],
-    top_k: int = 5,
-    path_filter: patterns.PathFilter | None = None,
-) -> list[dict[str, Any]]:
-    """The ``top_k`` chunks most similar to ``query_vector`` by cosine similarity, best first,
-    limited to files ``path_filter`` matches when one is given."""
+    path_filter: patterns.PathFilter | None,
+    exclude_path: str | None = None,
+) -> list[tuple[float, Row]]:
+    """Cosine similarity of every indexed chunk to ``query_vector``, best first."""
     q_norm = math.sqrt(sum(v * v for v in query_vector))
-    if q_norm == 0 or top_k < 1:
+    if q_norm == 0:
         return []
-    scored: list[tuple[float, str, int, int, str]] = []
-    for path, start, end, text, blob, norm in conn.execute(
-        "SELECT path, start_line, end_line, text, vec, norm FROM chunks WHERE root = ? AND model = ?",
+    scored: list[tuple[float, Row]] = []
+    for rowid, path, start, end, text, blob, norm in conn.execute(
+        "SELECT rowid, path, start_line, end_line, text, vec, norm FROM chunks WHERE root = ? AND model = ?",
         (str(root), model),
     ):
-        if norm == 0 or (path_filter and not path_filter.matches(path)):
+        if norm == 0 or path == exclude_path or (path_filter and not path_filter.matches(path)):
             continue
         vec = array.array("f")
         vec.frombytes(blob)
         if len(vec) != len(query_vector):
             continue  # indexed with another embedding size under the same model name; re-indexing fixes it
         score = sum(a * b for a, b in zip(query_vector, vec, strict=True)) / (q_norm * norm)
-        scored.append((score, path, start, end, text))
-    scored.sort(key=lambda row: row[0], reverse=True)
-    return [
-        {"path": path, "lines": f"{start}-{end}", "score": round(score, 4), "text": text}
-        for score, path, start, end, text in scored[:top_k]
-    ]
+        scored.append((score, (rowid, path, start, end, text)))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return scored
+
+
+def keyword_query(text: str) -> str:
+    """An FTS5 query matching any word of ``text``; every word is quoted, so no input is syntax."""
+    words = list(dict.fromkeys(w.lower() for w in _WORD.findall(text) if len(w) > 1))[:32]
+    return " OR ".join('"' + w.replace('"', '""') + '"' for w in words)
+
+
+def _keyword_ranking(
+    conn: sqlite3.Connection, root: Path, model: str, query: str, path_filter: patterns.PathFilter | None
+) -> list[Row]:
+    """Chunks matching ``query``'s words, best BM25 score first."""
+    match = keyword_query(query)
+    if not match or not has_keyword_index(conn):
+        return []
+    rows = conn.execute(
+        f"SELECT c.rowid, c.path, c.start_line, c.end_line, c.text FROM {_FTS_TABLE} f"
+        " JOIN chunks c ON c.rowid = f.rowid"
+        f" WHERE {_FTS_TABLE} MATCH ? AND c.root = ? AND c.model = ?"
+        f" ORDER BY bm25({_FTS_TABLE}) LIMIT ?",
+        (match, str(root), model, _KEYWORD_CANDIDATES * 5),
+    )
+    ranked = [row for row in rows if not (path_filter and not path_filter.matches(row[1]))]
+    return ranked[:_KEYWORD_CANDIDATES]
+
+
+def _result(row: Row, score: float | None) -> dict[str, Any]:
+    _, path, start, end, text = row
+    return {"path": path, "lines": f"{start}-{end}", "score": None if score is None else round(score, 4), "text": text}
+
+
+def search(
+    conn: sqlite3.Connection,
+    root: Path,
+    model: str,
+    query_vector: list[float] | None,
+    top_k: int = 5,
+    path_filter: patterns.PathFilter | None = None,
+    *,
+    query: str = "",
+    mode: str = "hybrid",
+) -> list[dict[str, Any]]:
+    """The ``top_k`` best chunks for a query, best first, limited to files ``path_filter`` matches.
+
+    ``semantic`` ranks by cosine similarity to ``query_vector``; ``keyword`` ranks the chunks that
+    contain ``query``'s words by BM25; ``hybrid`` (the default) merges both rankings with reciprocal
+    rank fusion, so a chunk that is close in meaning *and* shares exact words (a name, an error code)
+    comes first. ``score`` is always the cosine similarity when there is a query vector.
+    """
+    if mode not in SEARCH_MODES:
+        raise ValueError(f"mode must be one of {', '.join(SEARCH_MODES)}")
+    if top_k < 1:
+        return []
+    vector = _vector_scores(conn, root, model, query_vector, path_filter) if query_vector and mode != "keyword" else []
+    cosine = {row[0]: score for score, row in vector}
+    if mode == "semantic" or (mode == "hybrid" and not query.strip()):
+        return [_result(row, score) for score, row in vector[:top_k]]
+    keyword = _keyword_ranking(conn, root, model, query, path_filter)
+    if mode == "keyword":
+        return [_result(row, cosine.get(row[0])) for row in keyword[:top_k]]
+    fused: dict[int, float] = {}
+    rows: dict[int, Row] = {}
+    for ranking in ([row for _, row in vector], keyword):
+        for rank, row in enumerate(ranking):
+            fused[row[0]] = fused.get(row[0], 0.0) + 1.0 / (_RRF_K + rank + 1)
+            rows[row[0]] = row
+    best = sorted(fused, key=lambda rowid: fused[rowid], reverse=True)[:top_k]
+    return [_result(rows[rowid], cosine.get(rowid)) for rowid in best]
+
+
+def file_vector(
+    conn: sqlite3.Connection, root: Path, model: str, rel_path: str, lines: tuple[int, int] | None = None
+) -> list[float] | None:
+    """The mean direction of a file's indexed chunks (only those overlapping ``lines`` when given),
+    or ``None`` when the file, or that part of it, is not in the index."""
+    total: list[float] = []
+    count = 0
+    for start, end, blob, norm in conn.execute(
+        "SELECT start_line, end_line, vec, norm FROM chunks WHERE root = ? AND model = ? AND path = ?",
+        (str(root), model, rel_path),
+    ):
+        if norm == 0 or (lines and (end < lines[0] or start > lines[1])):
+            continue
+        vec = array.array("f")
+        vec.frombytes(blob)
+        if not total:
+            total = [0.0] * len(vec)
+        if len(vec) != len(total):
+            continue
+        for i, v in enumerate(vec):
+            total[i] += v / norm
+        count += 1
+    return [v / count for v in total] if count else None
+
+
+def similar(
+    conn: sqlite3.Connection,
+    root: Path,
+    model: str,
+    vector: list[float],
+    top_k: int = 5,
+    path_filter: patterns.PathFilter | None = None,
+    *,
+    exclude_path: str | None = None,
+) -> list[dict[str, Any]]:
+    """Other files most similar to ``vector``: each file's best chunk, best first. ``exclude_path``
+    leaves out the file the vector came from."""
+    if top_k < 1:
+        return []
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for score, row in _vector_scores(conn, root, model, vector, path_filter, exclude_path):
+        if row[1] in seen:
+            continue
+        seen.add(row[1])
+        results.append(_result(row, score))
+        if len(results) >= top_k:
+            break
+    return results

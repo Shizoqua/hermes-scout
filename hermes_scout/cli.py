@@ -2,6 +2,7 @@
 
     hermes-scout search "where do we handle rate limits" ~/notes
     hermes-scout search "backup schedule" ~/notes --glob "*.md"
+    hermes-scout similar notes/backups.md --in ~/notes
     hermes-scout index ~/notes
 
 Settings come from flags, then the environment (SCOUT_BASE_URL, SCOUT_MODEL, SCOUT_API_KEY),
@@ -62,7 +63,22 @@ def _parser() -> argparse.ArgumentParser:
         default=[],
         help="only search matching files, e.g. '*.md', 'docs/' or 'src/**/*.py' (repeatable)",
     )
+    search.add_argument(
+        "--mode",
+        choices=engine.SEARCH_MODES,
+        default="hybrid",
+        help="hybrid: meaning and exact words together (default); semantic: meaning only; keyword: words only",
+    )
     search.add_argument("--json", action="store_true", help="print the result as JSON")
+
+    similar = sub.add_parser("similar", parents=[common], help="find files related to a file or a passage")
+    similar.add_argument("file", nargs="?", help="a file in the folder to find related files for")
+    similar.add_argument("--text", help="a passage to find related files for, instead of a file")
+    similar.add_argument("--lines", help="only use this part of the file, e.g. 10-40")
+    similar.add_argument("--in", dest="path", default=".", help="folder to look in (default: current folder)")
+    similar.add_argument("-k", "--top-k", type=int, default=5, help="related files to show (default: 5)")
+    similar.add_argument("-g", "--glob", action="append", default=[], help="only consider matching files (repeatable)")
+    similar.add_argument("--json", action="store_true", help="print the result as JSON")
 
     index = sub.add_parser("index", parents=[common], help="build or refresh the index for a folder")
     index.add_argument("path", nargs="?", default=".", help="folder to index (default: current folder)")
@@ -81,9 +97,38 @@ def _print_results(results: list[dict[str, Any]]) -> None:
         print("No matching passages.")
         return
     for result in results:
-        print(f"{result['score']:.2f}  {result['path']}:{result['lines']}")
+        score = "  -  " if result["score"] is None else f"{result['score']:.2f}"
+        print(f"{score}  {result['path']}:{result['lines']}")
         first = next((line.strip() for line in result["text"].splitlines() if line.strip()), "")
         print(f"      {first[:100]}")
+
+
+def _similar(args: argparse.Namespace, conn: sqlite3.Connection, root: Path, embed: engine.Embedder) -> Any:
+    """Results for ``similar``, or an error message (str) when the input is unusable."""
+    if bool(args.file) == bool(args.text):
+        return "give either a FILE or --text, not both"
+    path_filter = patterns.PathFilter(args.glob)
+    top_k = max(1, args.top_k)
+    if args.text:
+        return engine.similar(conn, root, args.model, embed([args.text])[0], top_k, path_filter)
+    target = Path(args.file).expanduser()
+    target = (target if target.is_absolute() else Path.cwd() / target).resolve()
+    if not target.is_relative_to(root):
+        target = (root / args.file).resolve()  # also accept a path relative to the folder
+    if not target.is_relative_to(root):
+        return f"{args.file} is not inside {root}"
+    rel = target.relative_to(root).as_posix()
+    lines = None
+    if args.lines:
+        first, _, last = args.lines.partition("-")
+        try:
+            lines = (int(first), int(last or first))
+        except ValueError:
+            return f"--lines must look like 10-40, got {args.lines!r}"
+    vector = engine.file_vector(conn, root, args.model, rel, lines)
+    if vector is None:
+        return f"{rel} is not in the index (check its extension, size and .gitignore, and --lines)"
+    return engine.similar(conn, root, args.model, vector, top_k, path_filter, exclude_path=rel)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -114,27 +159,35 @@ def main(argv: list[str] | None = None) -> int:
                 f"removed {stats['removed_files']}; {stats['chunks']} chunks in the index."
             )
             return 0
-        results = engine.search(
-            conn,
-            root,
-            args.model,
-            embed([args.query])[0],
-            top_k=max(1, args.top_k),
-            path_filter=patterns.PathFilter(args.glob),
-        )
+        if args.command == "similar":
+            results = _similar(args, conn, root, embed)
+            if isinstance(results, str):
+                print(f"error: {results}", file=sys.stderr)
+                return 2
+            head: dict[str, Any] = {
+                "source": {"file": args.file, "lines": args.lines} if args.file else {"text": args.text}
+            }
+        else:
+            vector = embed([args.query])[0] if args.mode != "keyword" else None
+            results = engine.search(
+                conn,
+                root,
+                args.model,
+                vector,
+                max(1, args.top_k),
+                patterns.PathFilter(args.glob),
+                query=args.query,
+                mode=args.mode,
+            )
+            head = {"query": args.query, "mode": args.mode}
     except embeddings.EmbeddingError as err:
         print(f"error: {err}", file=sys.stderr)
         return 1
     finally:
         conn.close()
     if args.json:
-        print(
-            json.dumps(
-                {"query": args.query, "root": str(root), "model": args.model, "results": results, "index": stats},
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        payload = {**head, "root": str(root), "model": args.model, "results": results, "index": stats}
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
     else:
         _print_results(results)
     return 0

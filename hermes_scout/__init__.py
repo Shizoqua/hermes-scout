@@ -18,7 +18,7 @@ from . import embeddings, engine, patterns, schemas
 
 logger = logging.getLogger(__name__)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 PLUGIN_ID = "hermes-scout"
 API_KEY_ENV = "SCOUT_API_KEY"
@@ -88,16 +88,17 @@ def _embedder(ctx: Any) -> tuple[str, engine.Embedder]:
     )
 
 
-def _search(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
-    query = str(args.get("query") or "").strip()
-    if not query:
-        return {"error": "query is required"}
+Prepared = tuple[Path, str, "engine.Embedder", patterns.PathFilter, sqlite3.Connection, dict[str, int]]
+
+
+def _prepare(ctx: Any, args: dict[str, Any]) -> Prepared | dict[str, Any]:
+    """Resolve and check the folder, refresh its index and open it: what both tools start with.
+    Returns an error dict instead when the folder is unusable."""
     root = _resolve_root(args.get("path"))
     if not root.is_dir():
         return {"error": f"not a folder: {root}"}
     if blocked := _read_blocked(root):
         return {"error": blocked}
-    top_k = min(20, max(1, int(args.get("top_k") or _setting(ctx, "top_k"))))
     model, embed = _embedder(ctx)
     files = list(
         engine.iter_files(
@@ -108,29 +109,107 @@ def _search(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
             respect_gitignore=_setting(ctx, "respect_gitignore"),
         )
     )
-    path_filter = patterns.PathFilter(args.get("glob"))
     conn = _connect()
     try:
         with _INDEX_LOCK:
             stats = engine.update_index(conn, root, model, embed, files, max_chars=_setting(ctx, "chunk_chars"))
-        results = engine.search(conn, root, model, embed([query])[0], top_k=top_k, path_filter=path_filter)
+    except BaseException:
+        conn.close()
+        raise
+    return root, model, embed, patterns.PathFilter(args.get("glob")), conn, stats
+
+
+def _top_k(ctx: Any, args: dict[str, Any]) -> int:
+    return min(20, max(1, int(args.get("top_k") or _setting(ctx, "top_k"))))
+
+
+def _search(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
+    query = str(args.get("query") or "").strip()
+    if not query:
+        return {"error": "query is required"}
+    mode = str(args.get("mode") or "hybrid").strip().lower()
+    if mode not in engine.SEARCH_MODES:
+        return {"error": f"mode must be one of {', '.join(engine.SEARCH_MODES)}"}
+    top_k = _top_k(ctx, args)
+    prepared = _prepare(ctx, args)
+    if isinstance(prepared, dict):
+        return prepared
+    root, model, embed, path_filter, conn, stats = prepared
+    try:
+        vector = embed([query])[0] if mode != "keyword" else None
+        results = engine.search(conn, root, model, vector, top_k, path_filter, query=query, mode=mode)
     finally:
         conn.close()
-    out = {"query": query, "root": str(root), "model": model, "results": results, "index": stats}
+    out = {"query": query, "mode": mode, "root": str(root), "model": model, "results": results, "index": stats}
     if path_filter:
         out["glob"] = path_filter.globs
     return out
 
 
-def _make_handler(ctx: Any) -> Callable[..., str]:
+def _parse_lines(raw: Any) -> tuple[int, int] | None:
+    """``"10-40"`` or ``"12"`` as an inclusive line range; ``None`` for no range."""
+    text = str(raw or "").strip()
+    if not text:
+        return None
+    first, _, last = text.partition("-")
+    try:
+        start, end = int(first), int(last or first)
+    except ValueError:
+        start = end = 0
+    if start < 1 or end < start:
+        raise ValueError(f"lines must look like '10-40', got {text!r}")
+    return start, end
+
+
+def _similar(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
+    file_arg = str(args.get("file") or "").strip()
+    text = str(args.get("text") or "").strip()
+    if bool(file_arg) == bool(text):
+        return {"error": "give either file (a file in the folder) or text (a passage), not both"}
+    try:
+        lines = _parse_lines(args.get("lines"))
+    except ValueError as err:
+        return {"error": str(err)}
+    top_k = _top_k(ctx, args)
+    prepared = _prepare(ctx, args)
+    if isinstance(prepared, dict):
+        return prepared
+    root, model, embed, path_filter, conn, stats = prepared
+    try:
+        rel = None
+        if file_arg:
+            target = Path(file_arg).expanduser()
+            target = (target if target.is_absolute() else root / target).resolve()
+            try:
+                rel = target.relative_to(root).as_posix()
+            except ValueError:
+                return {"error": f"file is not inside the folder {root}: {file_arg}"}
+            vector = engine.file_vector(conn, root, model, rel, lines)
+            if vector is None:
+                return {
+                    "error": f"{rel} is not in the index (check its extension, size and .gitignore, and the line range)"
+                }
+        else:
+            vector = embed([text])[0]
+        results = engine.similar(conn, root, model, vector, top_k, path_filter, exclude_path=rel)
+    finally:
+        conn.close()
+    out: dict[str, Any] = {"root": str(root), "model": model, "results": results, "index": stats}
+    out["source"] = {"file": rel, "lines": args.get("lines") or None} if rel else {"text": text}
+    if path_filter:
+        out["glob"] = path_filter.globs
+    return out
+
+
+def _make_handler(ctx: Any, name: str, run: Callable[[Any, dict[str, Any]], dict[str, Any]]) -> Callable[..., str]:
     def handler(args: dict[str, Any], **_kwargs: Any) -> str:
         try:
-            return json.dumps(_search(ctx, args or {}), ensure_ascii=False)
+            return json.dumps(run(ctx, args or {}), ensure_ascii=False)
         except embeddings.EmbeddingError as err:
             return json.dumps({"error": str(err)})
         except (OSError, ValueError, sqlite3.Error) as err:
-            logger.warning("scout_search failed", exc_info=True)
-            return json.dumps({"error": f"semantic search failed: {err}"})
+            logger.warning("%s failed", name, exc_info=True)
+            return json.dumps({"error": f"{name} failed: {err}"})
 
     return handler
 
@@ -139,8 +218,16 @@ def register(ctx: Any) -> None:
     ctx.register_tool(
         name="scout_search",
         toolset="hermes_scout",
-        schema=schemas.SEMANTIC_SEARCH,
-        handler=_make_handler(ctx),
-        description="Search local files by meaning",
+        schema=schemas.SCOUT_SEARCH,
+        handler=_make_handler(ctx, "scout_search", _search),
+        description="Search local files by meaning and keywords",
         emoji="🔎",
+    )
+    ctx.register_tool(
+        name="scout_similar",
+        toolset="hermes_scout",
+        schema=schemas.SCOUT_SIMILAR,
+        handler=_make_handler(ctx, "scout_similar", _similar),
+        description="Find files related to a file or passage",
+        emoji="🧭",
     )

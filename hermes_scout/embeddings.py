@@ -13,7 +13,7 @@ import urllib.request
 from collections.abc import Callable
 from typing import Any
 
-USER_AGENT = "hermes-scout/0.2.0"
+USER_AGENT = "hermes-scout/0.3.0"
 DEFAULT_BASE_URL = "http://localhost:11434/v1"  # Ollama's OpenAI-compatible API
 DEFAULT_MODEL = "nomic-embed-text"
 Opener = Callable[..., Any]

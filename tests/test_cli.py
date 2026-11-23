@@ -120,3 +120,40 @@ def test_glob_and_no_gitignore_flags(server, notes, tmp_path, capsys):
     assert [r["path"] for r in json.loads(out)["results"]] == ["retries.md"]
     _, out, _ = _run(capsys, "search", "pasta", str(notes), "--no-gitignore", "-g", "pasta*", *common)
     assert [r["path"] for r in json.loads(out)["results"]] == ["pasta.md"]
+
+
+def test_search_mode_flag(server, notes, tmp_path, capsys):
+    index = str(tmp_path / "index.db")
+    code, out, _ = _run(
+        capsys, "search", "pasta", str(notes), "--mode", "keyword", "--base-url", server["url"], "--index", index
+    )
+    assert code == 0 and "pasta.md" in out and "retries.md" not in out and "  -  " in out
+
+
+def test_similar_command(server, notes, tmp_path, capsys, monkeypatch):
+    common = ("--in", str(notes), "--base-url", server["url"], "--index", str(tmp_path / "index.db"))
+    code, out, _ = _run(capsys, "similar", "retries.md", *common, "--json")
+    assert code == 0
+    payload = json.loads(out)
+    assert payload["source"] == {"file": "retries.md", "lines": None}
+    assert [r["path"] for r in payload["results"]] == ["pasta.md"]
+    monkeypatch.chdir(notes)
+    code, out, _ = _run(capsys, "similar", "retries.md", *common, "--lines", "1-1")
+    assert code == 0 and "pasta.md" in out
+    code, out, _ = _run(capsys, "similar", "--text", "salted water", *common)
+    assert code == 0 and "pasta.md" in out
+
+
+@pytest.mark.parametrize(
+    "argv,message",
+    [
+        (("similar",), "either a FILE or --text"),
+        (("similar", "retries.md", "--lines", "a-b"), "--lines must look like"),
+        (("similar", "missing.md"), "is not in the index"),
+        (("similar", "/etc/hostname"), "is not inside"),
+    ],
+)
+def test_similar_command_errors(server, notes, tmp_path, capsys, argv, message):
+    common = ("--in", str(notes), "--base-url", server["url"], "--index", str(tmp_path / "index.db"))
+    code, _, err = _run(capsys, *argv, *common)
+    assert code == 2 and message in err

@@ -2,9 +2,14 @@
 
 **Search your local files by meaning, not just keywords.**
 
-hermes-scout adds one tool, `scout_search`, to Hermes Agent. Ask *"where do we handle rate
-limits?"* and Hermes gets back the most relevant passages from your notes, docs or code, with the
-file path, line range and a similarity score, even when the files never use the words "rate limit".
+hermes-scout adds two tools to Hermes Agent:
+
+- **`scout_search`**: ask *"where do we handle rate limits?"* and Hermes gets back the most relevant
+  passages from your notes, docs or code, with the file path, line range and a similarity score,
+  even when the files never use the words "rate limit". It ranks by meaning and by exact words
+  together, so names and error codes are found too.
+- **`scout_similar`**: point at a file (or part of one) or a passage, and get the most related
+  files: related notes, overlapping docs, code that does something similar.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine.
@@ -34,7 +39,9 @@ The first search of a folder builds an index. Later searches only re-embed files
 - Text files are split into overlapping chunks of whole lines (1,200 characters by default).
 - Chunks are embedded in batches and stored in a SQLite index in the plugin's data folder, keyed
   by folder and embedding model. Only new or changed files are embedded again.
-- Your question is embedded the same way and chunks are ranked by cosine similarity.
+- Your question is embedded the same way and ranked by cosine similarity, and its words are looked
+  up in a keyword index (SQLite full-text search, BM25). The two rankings are merged, so passages
+  that match in meaning and in exact words come first.
 - Files that `.gitignore` files ignore are skipped, and a search can be narrowed with a filter such
   as `*.md` or `docs/`.
 - Python standard library only: no dependencies to install.

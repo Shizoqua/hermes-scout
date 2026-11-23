@@ -6,8 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-23
+
 ### Added
 
+- Hybrid search: results are ranked by meaning and by exact words together (SQLite full-text
+  search with BM25, merged by reciprocal rank fusion), so names, error codes and identifiers are
+  found as well as paraphrases. The tool's `mode` argument and the command line's `--mode` choose
+  `hybrid` (default), `semantic` or `keyword`. Existing indexes gain their keyword index on first use.
+- `scout_similar` tool and `hermes-scout similar` command: the files most related to a file, part of
+  a file (`lines`) or a passage (`text`), one result per file.
 - A logo, also used as the docs site's favicon.
 - Strict type checking with mypy in CI.
 - An OpenSSF Scorecard workflow and badge.
@@ -57,7 +65,8 @@ All notable changes to this project are documented here. The format follows
 - Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
   coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
 
-[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/Shizoqua/hermes-scout/releases/tag/v0.1.0
