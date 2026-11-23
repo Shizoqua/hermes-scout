@@ -50,6 +50,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Command line](#command-line)
+- [Choosing a search mode](#choosing-a-search-mode)
 - [In Hermes: the /scout command](#in-hermes-the-scout-command)
 - [Example](#example)
 - [How it works](#how-it-works)
@@ -147,6 +148,22 @@ Point it at another server with `--base-url` and `--model`, or the `SCOUT_BASE_U
 `SCOUT_MODEL` environment variables. Hosted endpoints read their key from `SCOUT_API_KEY`. The
 index lives in your user cache folder (`~/.cache/hermes-scout/index.db` on Linux). Full reference:
 [Command line docs](https://shizoqua.github.io/hermes-scout/cli/).
+
+## Choosing a search mode
+
+Search uses `hybrid` ranking by default, but you can switch modes depending on what you know
+about the text you're looking for:
+
+| Mode | When to use it | Example |
+|---|---|---|
+| `hybrid` (default) | General searches where both meaning and exact terms matter | `hermes-scout search "handling API timeouts" ~/project` |
+| `semantic` | You know the idea but aren't sure how the files describe it | `hermes-scout search "recovering from failed requests" ~/project --ranking semantic` |
+| `keyword` | You know an exact name, code or identifier | `hermes-scout search "ERR_4291" ~/project --ranking keyword` |
+
+Start with `hybrid` if you're unsure. Keyword mode is useful for identifiers that embeddings
+may not match reliably. Semantic mode is useful when your search terms differ from the wording
+in the files. Keyword ranking requires SQLite FTS5; if it is unavailable, search falls back
+to semantic ranking.
 
 ## In Hermes: the `/scout` command
 
