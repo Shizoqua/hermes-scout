@@ -14,6 +14,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- PDF and Word (`.docx`) files are indexed by their text, extracted locally with the standard
+  library, with a `[page N]` line before each PDF page. Files up to 20 MB; scanned or encrypted
+  PDFs are skipped. A `read_documents` setting and a `--no-documents` flag turn it off.
 - `/scout` command in Hermes: `doctor` checks the embeddings server, the model and keyword search
   and names the fix for anything that fails; `status` lists indexed folders; `index [folder]` builds
   an index ahead of time; `clear <folder|all>` forgets an index.

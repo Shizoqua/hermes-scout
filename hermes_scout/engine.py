@@ -15,7 +15,7 @@ from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 
-from . import patterns
+from . import documents, patterns
 
 Embedder = Callable[[list[str]], list[list[float]]]
 BlockCheck = Callable[[Path], "str | None"]
@@ -222,6 +222,17 @@ def _is_text(path: Path) -> bool:
         return b"\0" not in fh.read(_SNIFF_BYTES)
 
 
+def read_file(path: Path) -> str:
+    """The text to index for ``path``: the extracted text of a PDF or .docx file (empty when it cannot
+    be read, so a broken document is skipped rather than failing the search), else the file itself."""
+    if path.suffix.lower() in documents.DOCUMENT_EXTENSIONS:
+        try:
+            return documents.extract_text(path)
+        except documents.DocumentError:
+            return ""
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
 def iter_files(
     root: Path,
     *,
@@ -230,8 +241,10 @@ def iter_files(
     max_files: int = 2000,
     is_blocked: BlockCheck | None = None,
     respect_gitignore: bool = True,
+    read_documents: bool = True,
 ) -> Iterator[Path]:
-    """Text files under ``root`` worth indexing, in a stable order, at most ``max_files``.
+    """Text files under ``root`` worth indexing, in a stable order, at most ``max_files``. With
+    ``read_documents``, PDF and Word (.docx) files up to ``documents.MAX_DOCUMENT_BYTES`` are included.
 
     Hidden entries (dot-names), dependency/build folders, symlinks, binary and oversized files and
     any path ``is_blocked`` refuses are skipped, and so is anything a ``.gitignore`` file in the
@@ -254,12 +267,17 @@ def iter_files(
             rules_by_dir[os.path.join(dirpath, d)] = rules
         for name in sorted(filenames):
             path = Path(dirpath) / name
-            if name.startswith(".") or path.suffix.lower() not in extensions or path.is_symlink():
+            suffix = path.suffix.lower()
+            is_document = read_documents and suffix in documents.DOCUMENT_EXTENSIONS
+            if name.startswith(".") or not (is_document or suffix in extensions) or path.is_symlink():
                 continue
             if patterns.is_ignored(rules, prefix + name, False):
                 continue
             try:
-                if path.stat().st_size > max_file_bytes or not _is_text(path):
+                if is_document:
+                    if path.stat().st_size > documents.MAX_DOCUMENT_BYTES:
+                        continue
+                elif path.stat().st_size > max_file_bytes or not _is_text(path):
                     continue
             except OSError:
                 continue
@@ -317,7 +335,7 @@ def update_index(
         if known.get(rel) == (st.st_mtime_ns, st.st_size):
             stats["reused_files"] += 1
             continue
-        chunks = chunk_text(path.read_text(encoding="utf-8", errors="replace"), max_chars=max_chars)
+        chunks = chunk_text(read_file(path), max_chars=max_chars)
         vectors = _embed_all(embedder, [text for _, _, text in chunks], batch_size) if chunks else []
         with conn:
             _delete_chunks(conn, key, model, rel, fts)

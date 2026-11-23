@@ -75,6 +75,8 @@ embedding vectors, and the passages pointing in the most similar direction come 
 
 - **Hybrid search.** Ranks by meaning *and* by exact words together, so it finds "how we handle
   throttling" and `ERR_4291` alike. Switch to meaning-only or keyword-only when you want.
+- **PDF and Word files.** Reads the text of PDFs and `.docx` documents on your own machine, with
+  page markers so results say which page they came from.
 - **Find similar.** Point at a file or a passage and get the most related files: related notes,
   overlapping docs, code that does something similar.
 - **Local-first.** Works out of the box with Ollama, LM Studio, llama.cpp or vLLM on your own machine.
@@ -251,7 +253,8 @@ flowchart LR
 Indexes for different embedding models are kept apart, so switching models never mixes vectors.
 
 **What gets indexed:** common text, documentation, code and config extensions (`.md`, `.txt`, `.py`,
-`.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...). **Skipped:** hidden files and folders, dependency and
+`.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...), plus the text of PDF and Word (`.docx`) files up to
+20 MB ([details](https://shizoqua.github.io/hermes-scout/how-it-works/#pdf-and-word-files)). **Skipped:** hidden files and folders, dependency and
 build folders (`node_modules`, `venv`, `dist`, `build`, ...), anything a `.gitignore` file ignores,
 symlinks, binary files, files over the size limit, and every path Hermes's file tools refuse to read.
 
@@ -285,7 +288,7 @@ Any server that implements the OpenAI `POST /embeddings` API works. Set `base_ur
 
 In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout**) or with
 `hermes plugins config hermes-scout`. The command line takes the same settings as flags
-(`--base-url`, `--model`, `--chunk-chars`, `--max-files`, `--max-file-kb`, `--no-gitignore`, `-k`).
+(`--base-url`, `--model`, `--chunk-chars`, `--max-files`, `--max-file-kb`, `--no-gitignore`, `--no-documents`, `-k`).
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -297,6 +300,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
+| `read_documents` | `true` | Also index the text of PDF and Word (`.docx`) files up to 20 MB |
 | `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
@@ -307,6 +311,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `cannot reach the embeddings server at http://localhost:11434/v1` | Start Ollama (`ollama serve`) or point `base_url` at your server. |
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
+| A PDF never shows up in results | It may be scanned (pictures of pages) or encrypted, which have no text to read; anything over 20 MB is skipped too. Check that `read_documents` is on. |
 | No results for files you expected | Check the file's extension, size (`max_file_kb`), that it is not hidden or in a skipped folder, and that no `.gitignore` ignores it. |
 | Search returns fewer files than expected | Check whether the folder contains more than `max_files` (2,000 by default) or whether the file exceeds `max_file_kb` (1,000 KB by default). Narrow the folder or adjust those limits. |
 | The first search is slow | Expected for a large folder: every file is embedded once. Later searches only embed changes. |
@@ -326,7 +331,9 @@ a search filter would match their names.
   configure. The default is a server on your own machine. If you point `base_url` at a hosted API,
   that service receives the text of the files you search.
 - **Files read:** text files under the folder the model asks to search, minus the skipped paths
-  listed above. The plugin never writes to that folder.
+  listed above, and PDF and Word files unless `read_documents` is off. Their text is extracted on
+  your machine with Python's standard library; no file is uploaded anywhere except as text chunks
+  to the embeddings endpoint. The plugin never writes to that folder.
 - **Files written:** the index database in the plugin's own data folder only. `/scout clear`
   deletes rows from it; nothing else is ever deleted.
 - **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.
