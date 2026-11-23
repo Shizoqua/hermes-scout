@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Security
+
+- CI installs its tools (ruff, mypy, pytest, MkDocs, build) from hash-locked requirement files, and
+  Dependabot keeps them current.
+- The PDF and Word readers are fuzzed with Atheris every week and on every change to them.
+
+### Fixed
+
+- The line-range parser for `scout_similar` no longer assigns a value it never reads.
+
 ## [0.4.0] - 2026-11-23
 
 ### Added

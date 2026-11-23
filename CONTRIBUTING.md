@@ -19,7 +19,7 @@ Open an [issue](https://github.com/Shizoqua/hermes-scout/issues/new/choose) with
 3. Add or update tests in `tests/` for the behaviour you change, and run them:
 
    ```bash
-   python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
+   python -m pip install --require-hashes -r .github/requirements/test.txt -r .github/requirements/lint.txt
    python -m pytest --cov=hermes_scout
    ruff check . && ruff format --check .
    mypy
@@ -34,7 +34,10 @@ Open an [issue](https://github.com/Shizoqua/hermes-scout/issues/new/choose) with
    hermes plugins doctor hermes_scout --ci
    ```
 
-5. If you changed the docs, preview them with `pip install "mkdocs-material==9.8.0" && mkdocs serve`.
+5. If you changed the docs, preview them with
+   `pip install --require-hashes -r .github/requirements/docs.txt && mkdocs serve`.
+   If you changed `hermes_scout/documents.py`, fuzz it for a minute (Linux, Python 3.12 or later):
+   `pip install --require-hashes -r .github/requirements/fuzz.txt && python fuzz/fuzz_documents.py -max_total_time=60 fuzz/corpus`.
 
 6. Add a line to `CHANGELOG.md` under "Unreleased" and open a pull request describing what changed
    and why.
