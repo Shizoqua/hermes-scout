@@ -21,6 +21,12 @@ All notable changes to this project are documented here. The format follows
   `scripts/benchmark.py`, which reports hit@1, hit@5 and MRR for each ranking mode. A `benchmark`
   workflow runs it against a real model in a pinned Ollama container.
 
+### Changed
+
+- Hybrid ranking ignores filler words such as "how" and "the" in the keyword half and counts the
+  keyword ranking at half weight, so keywords still lift exact names and codes but no longer drown
+  out meaning on loosely worded questions. Measured with the new benchmark.
+
 ## [0.3.0] - 2026-11-23
 
 ### Added

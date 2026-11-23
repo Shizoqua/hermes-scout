@@ -263,8 +263,14 @@ def test_unknown_mode_is_rejected(mixed, conn):
 
 
 def test_keyword_query_quotes_every_word():
-    assert engine.keyword_query('say "hi" AND NOT x') == '"say" OR "hi" OR "and" OR "not"'
+    assert engine.keyword_query('say "hi" OR NEAR x') == '"say" OR "hi" OR "near"'
     assert engine.keyword_query("a ! ?") == ""
+
+
+def test_keyword_query_drops_function_words_unless_nothing_else_is_left():
+    assert engine.keyword_query("how do we handle the rate limits") == '"handle" OR "rate" OR "limits"'
+    assert engine.keyword_query("E4021") == '"e4021"'
+    assert engine.keyword_query("what is this") == '"what" OR "is" OR "this"'
 
 
 def test_keyword_index_follows_changes_and_deletions(mixed, conn):
@@ -408,3 +414,10 @@ def test_index_overview_and_clear(tmp_path):
     assert engine.clear_index(conn) == 2
     assert engine.index_overview(conn) == []
     conn.close()
+
+
+def test_rrf_merge_weights_each_ranking():
+    assert engine.rrf_merge([[1, 2, 3], [3]]) == [3, 1, 2]
+    assert engine.rrf_merge([[1, 2, 3], [3]], weights=[1.0, 0.01]) == [1, 2, 3]
+    with pytest.raises(ValueError, match="one weight per ranking"):
+        engine.rrf_merge([[1], [2]], weights=[1.0])

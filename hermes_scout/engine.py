@@ -103,6 +103,9 @@ NO_KEYWORD_NOTE = (
     "Keyword search is not available in this Python's SQLite (no FTS5), so results are ranked by meaning only."
 )
 _RRF_K = 60  # reciprocal rank fusion constant; 60 is the value from the original paper
+# Hybrid ranking counts the meaning ranking fully and the keyword ranking at half weight: keywords
+# still lift exact names and codes to the top, but cannot outvote meaning on loosely worded questions.
+_KEYWORD_WEIGHT = 0.5
 _KEYWORD_CANDIDATES = 200
 _WORD = re.compile(r"\w+", re.UNICODE)
 
@@ -379,10 +382,27 @@ def _vector_scores(
     return scored
 
 
+# English function words: they appear in almost every passage, so matching them ranks passages by
+# chance. Left out of the keyword query unless the query has nothing else.
+_STOP_WORDS_TEXT = """
+    a about above after again against all am an and any are as at be because been before being below
+    between both but by can could did do does doing down during each few for from further had has have
+    having he her here hers herself him himself his how i if in into is it its itself just me more most
+    my myself no nor not now of off on once only or other our ours ourselves out over own same she
+    should so some such than that the their theirs them themselves then there these they this those
+    through to too under until up very was we were what when where which while who whom why will with
+    would you your yours yourself yourselves us get got gets make makes made use used using one ones
+    something someone anything anyone
+"""
+STOP_WORDS = frozenset(_STOP_WORDS_TEXT.split())
+
+
 def keyword_query(text: str) -> str:
-    """An FTS5 query matching any word of ``text``; every word is quoted, so no input is syntax."""
-    words = list(dict.fromkeys(w.lower() for w in _WORD.findall(text) if len(w) > 1))[:32]
-    return " OR ".join('"' + w.replace('"', '""') + '"' for w in words)
+    """An FTS5 query matching any meaningful word of ``text``: function words such as "how" or "the"
+    are dropped unless nothing else is left. Every word is quoted, so no input is FTS5 syntax."""
+    words = list(dict.fromkeys(w.lower() for w in _WORD.findall(text) if len(w) > 1))
+    words = [w for w in words if w not in STOP_WORDS] or words
+    return " OR ".join('"' + w.replace('"', '""') + '"' for w in words[:32])
 
 
 def _keyword_ranking(
@@ -450,17 +470,22 @@ def search(
     if ranking == "keyword":
         return [_result(row, cosine.get(row[0])) for row in keyword[:top_k]]
     rows = {row[0]: row for row in keyword} | {row[0]: row for _, row in vector}
-    best = rrf_merge([[row[0] for _, row in vector], [row[0] for row in keyword]])[:top_k]
+    best = rrf_merge([[row[0] for _, row in vector], [row[0] for row in keyword]], weights=[1.0, _KEYWORD_WEIGHT])
+    best = best[:top_k]
     return [_result(rows[rowid], cosine.get(rowid)) for rowid in best]
 
 
-def rrf_merge(rankings: list[list[int]], k: int = _RRF_K) -> list[int]:
-    """Reciprocal rank fusion: each id scores ``sum(1 / (k + rank))`` over the rankings it appears in
-    (rank counted from 1), best first. Ties keep the order in which ids were first seen."""
+def rrf_merge(rankings: list[list[int]], k: int = _RRF_K, weights: list[float] | None = None) -> list[int]:
+    """Weighted reciprocal rank fusion: each id scores ``sum(weight / (k + rank))`` over the rankings
+    it appears in (rank counted from 1, weight 1 unless given), best first. Ties keep the order in
+    which ids were first seen."""
+    weights = weights or [1.0] * len(rankings)
+    if len(weights) != len(rankings):
+        raise ValueError("one weight per ranking")
     fused: dict[int, float] = {}
-    for ranked in rankings:
+    for ranked, weight in zip(rankings, weights, strict=True):
         for rank, item in enumerate(ranked, start=1):
-            fused[item] = fused.get(item, 0.0) + 1.0 / (k + rank)
+            fused[item] = fused.get(item, 0.0) + weight / (k + rank)
     return sorted(fused, key=lambda item: fused[item], reverse=True)
 
 
