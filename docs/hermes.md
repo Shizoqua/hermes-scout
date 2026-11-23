@@ -1,7 +1,9 @@
 # Use with Hermes
 
-The plugin adds one tool, `scout_search`, that the agent calls when you ask where something is
-discussed or implemented.
+The plugin adds two tools:
+
+- **`scout_search`** finds passages when you ask where something is discussed or implemented.
+- **`scout_similar`** finds the files most related to a file, part of a file, or a passage.
 
 ## Install
 
@@ -31,6 +33,22 @@ hermes plugins enable hermes-scout
 | `path` | Folder to search; relative paths resolve against the agent's working directory. |
 | `top_k` | Passages to return, 1 to 20. |
 | `glob` | Only search matching files, such as `*.md`, `docs/` or `src/**/*.py`; separate several with commas. |
+| `mode` | `hybrid` (default): meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only. |
+
+## Find related files
+
+```json
+{"file": "notes/backups.md", "path": "~/notes", "top_k": 5}
+```
+
+| Argument | Meaning |
+|---|---|
+| `file` | A file in the folder to find related files for. Give this or `text`. |
+| `lines` | Only use part of the file, e.g. `10-40`. |
+| `text` | A passage to find related files for, instead of a file. |
+| `path`, `glob`, `top_k` | As for `scout_search`. |
+
+Each related file appears once, with its best-matching passage; the source file is never returned.
 
 ## Settings
 

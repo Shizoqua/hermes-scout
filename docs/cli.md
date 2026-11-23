@@ -27,6 +27,21 @@ Limit a search to some files with `-g` (repeatable):
 hermes-scout search "retry policy" ~/project -g "*.md" -g "src/**/*.py"
 ```
 
+By default a search ranks by meaning and by exact words together (`--mode hybrid`). Use
+`--mode semantic` for meaning only, or `--mode keyword` for exact words only, which needs no
+embeddings server for the query.
+
+## Find similar files
+
+```bash
+hermes-scout similar notes/backups.md --in ~/notes
+hermes-scout similar src/client.py --lines 40-71 --in ~/project
+hermes-scout similar --text "salted pasta water" --in ~/recipes
+```
+
+Each related file appears once, with its best-matching passage; the source file is left out.
+`FILE` can be relative to the current folder or to `--in`.
+
 ## Index ahead of time
 
 ```bash
@@ -46,5 +61,6 @@ hermes-scout index ~/project
 | `--max-file-kb` | (none) | `1000` |
 | `--no-gitignore` | (none) | off: files `.gitignore` ignores are skipped |
 | `-g`, `--glob` | (none) | every indexed file |
+| `--mode` (search) | (none) | `hybrid` |
 
 Exit codes: `0` success, `1` the embeddings server failed, `2` the folder does not exist.

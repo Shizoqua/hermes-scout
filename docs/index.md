@@ -8,8 +8,8 @@ the words "rate limit".
 
 hermes-scout works two ways:
 
-- **As a [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin**, adding a `scout_search`
-  tool the agent can call.
+- **As a [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin**, adding two tools:
+  `scout_search` to find passages and `scout_similar` to find related files.
 - **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local

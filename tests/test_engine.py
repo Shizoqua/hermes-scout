@@ -210,3 +210,113 @@ def test_search_path_filter_limits_results(tmp_path, conn):
     assert len(engine.search(conn, tmp_path, "toy", query)) == 2
     only_docs = engine.search(conn, tmp_path, "toy", query, path_filter=engine.patterns.PathFilter("docs/"))
     assert [r["path"] for r in only_docs] == ["docs/retries.md"]
+
+
+# ── hybrid search and find similar ──────────────────────────────────────────
+
+
+def _rule_embed(texts):
+    """Meaning that ignores identifiers: anything about backoff (and the bare identifier query) points
+    one way, everything else mostly another."""
+    return [[1.0, 0.0] if ("backoff" in t or t == "ERR_4291") else [0.6, 0.8] for t in texts]
+
+
+@pytest.fixture
+def mixed(tmp_path, conn):
+    files = [
+        write(tmp_path / "backoff.md", "The client uses exponential backoff between retries."),
+        write(tmp_path / "errors.md", "The server raises ERR_4291 when the quota is exhausted."),
+        write(tmp_path / "pasta.md", "Boil pasta in salted water."),
+    ]
+    engine.update_index(conn, tmp_path, "rule", _rule_embed, files)
+    return tmp_path
+
+
+def test_hybrid_puts_an_exact_identifier_match_first(mixed, conn):
+    vec = _rule_embed(["ERR_4291"])[0]
+    semantic = engine.search(conn, mixed, "rule", vec, 3, query="ERR_4291", mode="semantic")
+    assert semantic[0]["path"] == "backoff.md"
+    hybrid = engine.search(conn, mixed, "rule", vec, 3, query="ERR_4291")
+    assert hybrid[0]["path"] == "errors.md"
+    assert hybrid[0]["score"] is not None  # the score stays the cosine similarity
+
+
+def test_keyword_mode_needs_no_query_vector_and_only_returns_matches(mixed, conn):
+    results = engine.search(conn, mixed, "rule", None, 5, query="pasta water", mode="keyword")
+    assert [(r["path"], r["score"]) for r in results] == [("pasta.md", None)]
+    assert engine.search(conn, mixed, "rule", None, 5, query="???", mode="keyword") == []
+
+
+def test_keyword_search_stems_words(mixed, conn):
+    results = engine.search(conn, mixed, "rule", None, 5, query="retry", mode="keyword")
+    assert [r["path"] for r in results] == ["backoff.md"]
+
+
+def test_hybrid_without_query_text_is_semantic(mixed, conn):
+    vec = _rule_embed(["ERR_4291"])[0]
+    assert engine.search(conn, mixed, "rule", vec, 1)[0]["path"] == "backoff.md"
+
+
+def test_unknown_mode_is_rejected(mixed, conn):
+    with pytest.raises(ValueError, match="mode must be one of"):
+        engine.search(conn, mixed, "rule", None, 1, query="x", mode="fuzzy")
+
+
+def test_keyword_query_quotes_every_word():
+    assert engine.keyword_query('say "hi" AND NOT x') == '"say" OR "hi" OR "and" OR "not"'
+    assert engine.keyword_query("a ! ?") == ""
+
+
+def test_keyword_index_follows_changes_and_deletions(mixed, conn):
+    (mixed / "pasta.md").write_text("Toast bread instead.", encoding="utf-8")
+    (mixed / "errors.md").unlink()
+    engine.update_index(conn, mixed, "rule", _rule_embed, sorted(mixed.glob("*.md")))
+    find = lambda q: [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query=q, mode="keyword")]  # noqa: E731
+    assert find("pasta") == [] and find("toast") == ["pasta.md"] and find("ERR_4291") == []
+    chunks = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
+    assert conn.execute("SELECT COUNT(*) FROM chunks_fts").fetchone()[0] == chunks
+
+
+def test_an_index_from_before_keyword_search_gets_its_keyword_rows(tmp_path):
+    old = sqlite3.connect(":memory:")
+    old.executescript(engine._SCHEMA)  # the 0.2 schema: no keyword table
+    files = [write(tmp_path / "a.md", "quarterly budget review")]
+    engine.update_index(old, tmp_path, "toy", toy_embed, files)
+    assert not engine.has_keyword_index(old)
+    assert engine.search(old, tmp_path, "toy", None, 5, query="budget", mode="keyword") == []
+    engine.ensure_schema(old)
+    results = engine.search(old, tmp_path, "toy", None, 5, query="budget", mode="keyword")
+    assert [r["path"] for r in results] == ["a.md"]
+    old.close()
+
+
+def test_mismatched_keyword_rows_are_rebuilt(mixed, conn):
+    conn.execute("DELETE FROM chunks_fts")
+    engine.ensure_schema(conn)
+    assert [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query="pasta", mode="keyword")] == [
+        "pasta.md"
+    ]
+
+
+def test_similar_returns_other_files_once_each(tmp_path, conn):
+    files = [
+        write(tmp_path / "rates.md", "rate limit retries\n\n" + "rate limit retry backoff\n" * 40),
+        write(tmp_path / "client.md", "the client retries after a rate limit"),
+        write(tmp_path / "limits.md", "rate limit notes\n" + "rate limit window\n" * 80),
+        write(tmp_path / "pasta.md", "boil pasta in salted water"),
+    ]
+    engine.update_index(conn, tmp_path, "toy", toy_embed, files, max_chars=200)
+    vec = engine.file_vector(conn, tmp_path, "toy", "rates.md")
+    results = engine.similar(conn, tmp_path, "toy", vec, 5, exclude_path="rates.md")
+    paths = [r["path"] for r in results]
+    assert "rates.md" not in paths and len(paths) == len(set(paths)) == 3
+    assert paths[-1] == "pasta.md"
+    assert engine.similar(conn, tmp_path, "toy", vec, 0) == []
+
+
+def test_file_vector_respects_line_ranges_and_missing_files(tmp_path, conn):
+    files = [write(tmp_path / "a.md", "\n".join(f"line {i}" for i in range(200)))]
+    engine.update_index(conn, tmp_path, "toy", toy_embed, files, max_chars=100)
+    assert engine.file_vector(conn, tmp_path, "toy", "a.md", (1, 5)) is not None
+    assert engine.file_vector(conn, tmp_path, "toy", "a.md", (5000, 6000)) is None
+    assert engine.file_vector(conn, tmp_path, "toy", "missing.md") is None

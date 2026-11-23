@@ -35,7 +35,8 @@ numbers and a similarity score.
 
 hermes-scout works two ways:
 
-- **As a Hermes Agent plugin**, adding a `scout_search` tool the agent can call.
+- **As a Hermes Agent plugin**, adding two tools: `scout_search` (find passages) and
+  `scout_similar` (find files related to a file or passage).
 - **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
@@ -69,7 +70,10 @@ embedding vectors, and the passages pointing in the most similar direction come 
 
 ## Features
 
-- **Search by meaning** across notes, docs and source code in any folder.
+- **Hybrid search.** Ranks by meaning *and* by exact words together, so it finds "how we handle
+  throttling" and `ERR_4291` alike. Switch to meaning-only or keyword-only when you want.
+- **Find similar.** Point at a file or a passage and get the most related files: related notes,
+  overlapping docs, code that does something similar.
 - **Local-first.** Works out of the box with Ollama, LM Studio, llama.cpp or vLLM on your own machine.
 - **Fast repeat searches.** An incremental index re-embeds only files that changed since the last search.
 - **Safe by default.** Skips hidden files, dependency folders, binaries and every path Hermes's own
@@ -129,7 +133,8 @@ $ hermes-scout search "how does the client handle rate limiting" ~/project
 
 | Command | What it does |
 |---|---|
-| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--json` for scripts. |
+| `hermes-scout search QUERY [PATH]` | Search a folder (default: the current one). `-k 10` for more results, `-g "*.md"` to filter, `--mode keyword` for exact words only, `--json` for scripts. |
+| `hermes-scout similar FILE --in FOLDER` | Files most related to `FILE` (or `--text "..."`); `--lines 10-40` for part of a file. |
 | `hermes-scout index [PATH]` | Build or refresh the index ahead of time. |
 | `hermes-scout --version` | Print the version. |
 
@@ -178,9 +183,13 @@ flowchart LR
     C -- no --> E[(SQLite index)]
     D --> E
     Q[Your question] --> F[Embed the question]
-    E --> G[Rank chunks by<br/>cosine similarity]
+    E --> G[Rank by meaning<br/>cosine similarity]
+    E --> K[Rank by exact words<br/>BM25 keyword index]
     F --> G
-    G --> R[Top passages with<br/>path, lines, score]
+    Q --> K
+    G --> M[Merge both rankings<br/>reciprocal rank fusion]
+    K --> M
+    M --> R[Top passages with<br/>path, lines, score]
 ```
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
@@ -191,8 +200,14 @@ flowchart LR
 3. **Incremental index.** The index lives in SQLite in the plugin's own data folder
    (`<hermes home>/plugin-data/hermes-scout/index.db`), keyed by folder and embedding model. Only
    new or changed files (by modification time and size) are re-embedded, and deleted files are dropped.
-4. **Ranking.** The question is embedded the same way and chunks are ranked by cosine similarity:
-   `score = (q · c) / (‖q‖ ‖c‖)`.
+4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
+   `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
+   (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
+   rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
+   shares exact words (a function name, an error code, a ticket ID) comes first. Use `mode` to rank
+   by meaning only (`semantic`) or by words only (`keyword`).
+5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
+   returns the other files whose best passage is closest, one result per file.
 
 Indexes for different embedding models are kept apart, so switching models never mixes vectors.
 
@@ -254,7 +269,6 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 
 ## Roadmap
 
-- Hybrid ranking: combine keyword (BM25) and vector scores.
 - Result diversity (MMR) so near-duplicate chunks do not crowd the top results.
 - An index statistics command and a way to clear old indexes.
 
@@ -268,7 +282,7 @@ or network access:
 
 ```bash
 python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
-python -m pytest --cov=hermes_scout     # 77 tests, no network
+python -m pytest --cov=hermes_scout     # 104 tests, no network
 ruff check . && ruff format --check .
 mypy                                    # strict type check
 ```

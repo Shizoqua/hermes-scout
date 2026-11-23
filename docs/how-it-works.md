@@ -8,9 +8,13 @@ flowchart LR
     C -- no --> E[(SQLite index)]
     D --> E
     Q[Your question] --> F[Embed the question]
-    E --> G[Rank chunks by<br/>cosine similarity]
+    E --> G[Rank by meaning<br/>cosine similarity]
+    E --> K[Rank by exact words<br/>BM25 keyword index]
     F --> G
-    G --> R[Top passages with<br/>path, lines, score]
+    Q --> K
+    G --> M[Merge both rankings<br/>reciprocal rank fusion]
+    K --> M
+    M --> R[Top passages with<br/>path, lines, score]
 ```
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
@@ -19,8 +23,14 @@ flowchart LR
 2. **Embedding.** Chunks are sent in batches of 32 and stored as float32 vectors with precomputed norms.
 3. **Incremental index.** The SQLite index is keyed by folder and embedding model. Only new or changed
    files (by modification time and size) are re-embedded, and deleted files are dropped.
-4. **Ranking.** The question is embedded the same way and chunks are ranked by cosine similarity,
-   `score = (q · c) / (‖q‖ ‖c‖)`.
+4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
+   `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
+   (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
+   rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
+   shares exact words (a function name, an error code, a ticket ID) comes first. Use `mode` to rank
+   by meaning only (`semantic`) or by words only (`keyword`).
+5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
+   returns the other files whose best passage is closest, one result per file.
 
 Indexes for different embedding models are kept apart, so switching models never mixes vectors.
 
