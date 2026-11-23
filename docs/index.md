@@ -4,79 +4,155 @@ hide:
   - toc
 ---
 
-<div class="scout-hero" markdown>
+<div class="sc-hero" markdown>
 
-# Search your files by meaning
+<img class="sc-logo" src="logo.svg" alt="">
 
-**hermes-scout** finds the passage you mean in your notes, docs, code, PDFs and Word files, even
-when it never uses your words. A [Hermes Agent](https://github.com/NousResearch/hermes-agent)
-plugin and a standalone command, running on your own machine.
+# Ask your files anything.
 
-[Get started](getting-started.md){ .md-button .md-button--primary }
-[View on GitHub](https://github.com/Shizoqua/hermes-scout){ .md-button }
+<p class="sc-lead">Private search by meaning for your notes, docs, code, PDFs and Word files.
+For <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> and any terminal.</p>
 
-</div>
-
-<video class="scout-demo" src="demo.mp4" autoplay loop muted playsinline></video>
-
-<p class="scout-caption">A real session: hermes-scout with <code>nomic-embed-text</code> on Ollama, searching the
-synthetic benchmark project. The recording is in the repository as <code>docs/demo.cast</code>.</p>
-
-## Keyword search misses what you meant
-
-![Keyword search: the question shares no words with docs/backups.md, so it is not found](problem.png)
-
-![hermes-scout: the same question puts docs/backups.md first, and code names like E4021 still work](solution.png)
-
-## Measured, not claimed
-
-<div class="grid cards" markdown>
-
-- :material-target: **93%** of benchmark questions get the right file **first**
-- :material-format-list-numbered: **100%** have it in the **top five**
-- :material-swap-horizontal: **89%** first place on questions **worded differently** from the answer, against 39% for keywords alone
-
-</div>
-
-Thirty questions over a synthetic project, run against a real model on every change to the ranking
-code. [Method and full results](benchmark.md).
-
-## How it works
-
-![How hermes-scout works: read, index, rank](architecture.png)
-
-## Why people use it
-
-<div class="grid cards" markdown>
-
-- :material-file-document-multiple: **PDF and Word files** are searched too, with page numbers in the results.
-- :material-shield-lock: **Local-first and private**: works with Ollama, LM Studio, llama.cpp or vLLM; nothing is uploaded.
-- :material-lightning-bolt: **Fast repeat searches**: an incremental index re-reads only files that changed.
-- :material-code-braces: **Code names found first**: `ERR_4291`, `pg_dump` and `getUserById` match exactly.
-- :material-source-branch: **Respects `.gitignore`** and filters like `*.md` or `docs/`.
-- :material-stethoscope: **`/scout doctor`** checks your setup and names the fix in plain words.
-- :material-package-variant-closed: **Zero dependencies**: Python standard library only.
-- :material-test-tube: **Tested and fuzzed** on Linux, macOS and Windows, Python 3.11 to 3.14.
-
-</div>
-
-## Install
+<div class="sc-install" markdown>
 
 === "Hermes plugin"
 
     ```bash
-    hermes plugins install Shizoqua/hermes-scout
-    hermes plugins enable hermes-scout
+    hermes plugins install Shizoqua/hermes-scout && hermes plugins enable hermes-scout
     ```
 
-    Then ask Hermes: *"Search ~/notes for my backup plan."*
-
-=== "Command line"
+=== "pipx"
 
     ```bash
     pipx install hermes-scout
-    hermes-scout search "how do we keep a copy of the database" ~/project
     ```
 
-Both need an embeddings server; the easiest is [Ollama](https://ollama.com):
-`ollama pull nomic-embed-text`. Full steps in [Getting started](getting-started.md).
+=== "pip"
+
+    ```bash
+    pip install hermes-scout
+    ```
+
+</div>
+
+<p class="sc-meta">Zero dependencies &middot; Python 3.11 to 3.14 &middot; Linux, macOS, Windows &middot; MIT</p>
+
+</div>
+
+<section class="sc-section">
+<p class="sc-kicker">Try it</p>
+<h2 class="sc-title">Pick a question. See what comes back.</h2>
+<p class="sc-sub">Real results from hermes-scout on a small sample project, recorded with
+<code>nomic-embed-text</code> on Ollama.</p>
+
+<div class="sc-play" data-playground>
+  <div class="sc-chips" role="tablist">
+    <button class="sc-chip" role="tab" data-q="0">how do we keep a copy of the database in case it gets lost</button>
+    <button class="sc-chip" role="tab" data-q="1">E4021</button>
+    <button class="sc-chip" role="tab" data-q="2">files like src/auth/tokens.py</button>
+  </div>
+  <div class="sc-term">
+    <div class="sc-bar"><span></span><span></span><span></span><em>hermes-scout</em></div>
+    <div class="sc-cmd"><span class="sc-prompt">$</span> <span data-cmd></span><span class="sc-caret"></span></div>
+    <ol class="sc-results" data-results></ol>
+    <p class="sc-note" data-note></p>
+  </div>
+  <label class="sc-compare" data-compare-wrap><input type="checkbox" data-compare> Compare with keyword search</label>
+</div>
+</section>
+
+<section class="sc-section">
+<p class="sc-kicker">Get started</p>
+<h2 class="sc-title">First search in three steps</h2>
+
+<div class="sc-steps">
+  <div class="sc-step"><span class="sc-num">1</span><h3>Start an embeddings server</h3>
+  <p>Ollama is the easiest, and it runs on your machine.</p><code>ollama pull nomic-embed-text</code></div>
+  <div class="sc-step"><span class="sc-num">2</span><h3>Check the setup</h3>
+  <p>It names the fix in plain words if anything is missing.</p><code>hermes-scout doctor</code></div>
+  <div class="sc-step"><span class="sc-num">3</span><h3>Ask</h3>
+  <p>The first search builds the index; later ones reuse it.</p><code>hermes-scout search "backup plan" ~/notes</code></div>
+</div>
+</section>
+
+<section class="sc-section" markdown>
+<p class="sc-kicker">Use it from</p>
+<h2 class="sc-title">Where you already work</h2>
+
+=== "Hermes chat"
+
+    ```text
+    You      Which of my notes in ~/notes covers the backup plan?
+
+    Hermes   (searches ~/notes with scout_search)
+             It is in docs/backups.md, lines 1-15: a nightly pg_dump at
+             02:00 UTC, with files kept for 30 days.
+    ```
+
+=== "/scout command"
+
+    ```text
+    /scout doctor            check the server, the model and keyword search
+    /scout status            list the indexed folders
+    /scout index ~/notes     build or refresh an index now
+    /scout clear ~/notes     forget a folder's index
+    ```
+
+=== "Terminal"
+
+    ```bash
+    hermes-scout search "how do we handle rate limits" ~/project
+    hermes-scout search E4021 ~/project --ranking keyword
+    hermes-scout similar notes/ideas.md --in ~/notes
+    hermes-scout search "restore drill" ~/reports -g "*.pdf" --json
+    ```
+
+</section>
+
+<section class="sc-section">
+<p class="sc-kicker">Measured, not claimed</p>
+<h2 class="sc-title">30 questions with known answers</h2>
+<p class="sc-sub">Right file first, on a public benchmark that reruns on every change to the ranking code.</p>
+
+<div class="sc-bars" data-bars>
+  <div class="sc-bar-row"><span>hermes-scout, all questions</span><div><i style="--v:93%"></i></div><b>93%</b></div>
+  <div class="sc-bar-row"><span>hermes-scout, reworded questions</span><div><i style="--v:89%"></i></div><b>89%</b></div>
+  <div class="sc-bar-row sc-dim"><span>keyword search, reworded questions</span><div><i style="--v:39%"></i></div><b>39%</b></div>
+</div>
+<p class="sc-sub"><a href="benchmark/">Method and full results</a></p>
+</section>
+
+<section class="sc-section">
+<p class="sc-kicker">Honest fit</p>
+<h2 class="sc-title">Good for, and not for</h2>
+
+<div class="sc-fit">
+  <div class="sc-yes"><h3>Good for</h3><ul>
+    <li>Finding a passage when you don't remember its words</li>
+    <li>Code names and error codes, found exactly</li>
+    <li>PDF and Word files, with page numbers</li>
+    <li>Private folders: files never leave your machine</li>
+  </ul></div>
+  <div class="sc-no"><h3>Not for</h3><ul>
+    <li>Searching the web</li>
+    <li>Scanned PDFs and images (no text to read)</li>
+    <li>Chat memory or a document store</li>
+    <li>Editing or uploading your files</li>
+  </ul></div>
+</div>
+</section>
+
+<section class="sc-section">
+<p class="sc-kicker">Works with</p>
+<h2 class="sc-title">Any OpenAI-compatible embeddings server</h2>
+<div class="sc-logos">
+  <a href="configuration/">Ollama</a><a href="configuration/">LM Studio</a><a href="configuration/">llama.cpp</a>
+  <a href="configuration/">vLLM</a><a href="configuration/">Hosted APIs</a>
+</div>
+</section>
+
+<div class="sc-cta">
+  <h2>Ready when your files are.</h2>
+  <p><a class="md-button md-button--primary" href="getting-started/">Get started</a>
+  <a class="md-button" href="https://github.com/Shizoqua/hermes-scout">View on GitHub</a></p>
+</div>

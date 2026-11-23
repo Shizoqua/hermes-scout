@@ -49,6 +49,9 @@ nav:
 extra_css:
   - stylesheets/home.css
 
+extra_javascript:
+  - javascripts/playground.js
+
 markdown_extensions:
   - admonition
   - attr_list
