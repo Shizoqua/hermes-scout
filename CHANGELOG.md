@@ -14,6 +14,10 @@ All notable changes to this project are documented here. The format follows
 - One look for every picture in the README: black background, grey rounded panels and gradient
   icon tiles. The architecture picture shows how your folder becomes a searchable index.
   Screenshots have bigger text and tighter framing.
+- A new docs home page that does not repeat the README: a one-line hero with tabbed install
+  commands, a "Try it" playground that plays back real results (with a switch to compare keyword
+  search), three steps to a first search, examples for Hermes and the terminal, animated benchmark
+  bars and an honest "Good for, and not for".
 - A "What's inside" table and a "Repository layout" section in the README; the architecture picture
   is near the top.
 
