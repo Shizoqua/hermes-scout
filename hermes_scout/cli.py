@@ -16,6 +16,7 @@ import os
 import sqlite3
 import sys
 from pathlib import Path
+from typing import Any
 
 from . import __version__, embeddings, engine, patterns
 
@@ -75,7 +76,7 @@ def _open_index(path: Path) -> sqlite3.Connection:
     return conn
 
 
-def _print_results(results: list[dict]) -> None:
+def _print_results(results: list[dict[str, Any]]) -> None:
     if not results:
         print("No matching passages.")
         return

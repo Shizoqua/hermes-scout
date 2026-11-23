@@ -9,6 +9,8 @@ copyright: Copyright &copy; 2026 Lanre Shittu. MIT License.
 
 theme:
   name: material
+  logo: logo.svg
+  favicon: logo.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

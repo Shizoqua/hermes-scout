@@ -19,9 +19,10 @@ Open an [issue](https://github.com/Shizoqua/hermes-scout/issues/new/choose) with
 3. Add or update tests in `tests/` for the behaviour you change, and run them:
 
    ```bash
-   python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
+   python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
    python -m pytest --cov=hermes_scout
    ruff check . && ruff format --check .
+   mypy
    ```
 
    CI fails if coverage drops below 90%.
