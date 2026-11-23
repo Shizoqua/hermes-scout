@@ -10,9 +10,16 @@ body:
     validations:
       required: true
   - type: textarea
+    id: example
+    attributes:
+      label: Example use case
+      description: A short example of how you would use this feature.
+      placeholder: I want to search ... so I can ...
+  - type: textarea
     id: proposal
     attributes:
       label: The change you suggest
+      description: Describe the behaviour you would like to see.
     validations:
       required: true
   - type: textarea
