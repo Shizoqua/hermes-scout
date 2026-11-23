@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>hermes-scout architecture</title>
+<style>
+  :root { --bg:#0b1022; --panel:#111735; --line:#2b3366; --text:#ece9ff; --dim:#9893c2;
+          --violet:#a78bfa; --cyan:#7dd3fc; --green:#4ade80; --amber:#fbbf24; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1600px; height: 720px; background: radial-gradient(1200px 600px at 75% 0%, #1c1648 0%, var(--bg) 60%);
+         font-family: Inter, sans-serif; color: var(--text); padding: 44px 56px; }
+  h1 { font-size: 46px; font-weight: 800; letter-spacing: -1px; text-align: center;
+       background: linear-gradient(90deg, #f5f3ff, var(--violet)); -webkit-background-clip: text; color: transparent; }
+  .sub { text-align: center; color: var(--dim); font-size: 20px; margin-top: 6px; }
+  .row { display: grid; grid-template-columns: 1fr 70px 1.25fr 70px 1.15fr; margin-top: 40px; align-items: stretch; }
+  .col { background: var(--panel); border: 1.5px solid var(--line); border-radius: 20px; padding: 22px 24px; }
+  .col h2 { font-size: 15px; letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 4px; }
+  .col .what { color: var(--dim); font-size: 15px; margin-bottom: 16px; }
+  .v h2 { color: var(--cyan); } .i h2 { color: var(--violet); } .q h2 { color: var(--green); }
+  .v { border-color: #24577a; } .i { border-color: #4b3a8f; } .q { border-color: #22613d; }
+  .item { background: #0c1230; border: 1px solid #262d5c; border-radius: 12px; padding: 11px 14px; margin-bottom: 10px; }
+  .item b { display: block; font-size: 16px; } .item span { color: var(--dim); font-size: 13.5px; }
+  .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 13px; color: var(--cyan); }
+  .arrow { display: flex; align-items: center; justify-content: center; color: var(--violet); font-size: 40px; }
+  .route { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .pill { border-radius: 10px; padding: 10px 12px; font-size: 13.5px; border: 1px solid; }
+  .pill b { display: block; font-size: 14.5px; margin-bottom: 3px; }
+  .pill.words { border-color: #4b3a8f; background: #1a1540; } .pill.code { border-color: #7a5a10; background: #2a2210; }
+  .pill.code b { color: var(--amber); } .pill.words b { color: var(--violet); }
+  .result { background: #0c1a14; border: 1px solid #22613d; border-radius: 12px; padding: 12px 14px; }
+  .result .mono { color: var(--green); }
+  .bar { margin-top: 30px; display: flex; justify-content: center; }
+  .bar div { border: 1.5px solid #22613d; background: #0c1a14; border-radius: 14px; padding: 12px 22px; font-size: 18px; }
+  .bar b { color: var(--green); }
+</style>
+</head>
+<body>
+  <h1>HOW HERMES-SCOUT WORKS</h1>
+  <p class="sub">Your files stay on your machine. Only text chunks go to the embeddings server you choose.</p>
+  <div class="row">
+    <div class="col v">
+      <h2>1 · Read</h2>
+      <p class="what">The folder you name, safely</p>
+      <div class="item"><b>Notes, docs and code</b><span>.md .txt .py .ts .go .json .yaml and more</span></div>
+      <div class="item"><b>PDF and Word files</b><span>text extracted locally, with page markers</span></div>
+      <div class="item"><b>Skipped on purpose</b><span>.gitignore matches, hidden, binary, oversized, and paths Hermes refuses (.env)</span></div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="col i">
+      <h2>2 · Index</h2>
+      <p class="what">Incremental: only changed files are re-read</p>
+      <div class="item"><b>Chunks of whole lines</b><span>about 1,200 characters, neighbours share two lines</span></div>
+      <div class="item"><b>Meaning vectors</b><span>any OpenAI-compatible <span class="mono">/embeddings</span> server, Ollama by default</span></div>
+      <div class="item"><b>Keyword index</b><span>SQLite full-text search (FTS5, BM25) next to the vectors</span></div>
+      <div class="item"><b>One SQLite file</b><span>per folder and model, so models never mix</span></div>
+    </div>
+    <div class="arrow">&rarr;</div>
+    <div class="col q">
+      <h2>3 · Rank</h2>
+      <p class="what">The default picks the right method per query</p>
+      <div class="route">
+        <div class="pill words"><b>A question in words</b>ranked by meaning<br><span class="mono">"how do we keep a copy of the database"</span></div>
+        <div class="pill code"><b>Only code names</b>exact matches first<br><span class="mono">ERR_4291 &nbsp; pg_dump</span></div>
+      </div>
+      <div class="result">
+        <b>Results you can cite</b><br>
+        <span class="mono">0.63 &nbsp;docs/backups.md:1-15</span><br>
+        <span style="color:var(--dim);font-size:13.5px">file, lines (and PDF page) and a score, best first</span>
+      </div>
+      <div class="item" style="margin-top:10px"><b>Find similar files</b><span>scout_similar returns the files closest to a file or a passage</span></div>
+    </div>
+  </div>
+  <div class="bar"><div>Measured on a public benchmark: <b>the right file first for 28 of 30 questions, in the top five for all 30</b></div></div>
+</body>
+</html>

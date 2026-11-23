@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>hermes-scout</title><link rel="stylesheet" href="card.css"></head>
+<body>
+  <h1 class="c-violet">HERMES-SCOUT</h1>
+  <p class="sub">Finds what you meant, and still finds exact names.</p>
+  <div class="step">
+    <div class="icon c-violet">?</div>
+    <div><div class="label c-violet">1 · The same question</div>
+      <div class="body">"how do we keep a copy of the database in case it gets lost"</div></div><div></div>
+  </div>
+  <div class="step">
+    <div class="icon c-cyan">&#8776;</div>
+    <div><div class="label c-cyan">2 · Compared by meaning</div>
+      <div class="body">The question and every passage become embedding vectors; the closest passages come first.</div></div><div></div>
+  </div>
+  <div class="step good">
+    <div class="icon c-green">&#10003;</div>
+    <div><div class="label c-green">3 · First result</div>
+      <div class="body mono">0.63 &nbsp;docs/backups.md:1-15 &nbsp;<span class="dim"># Backups and restores</span></div></div>
+    <div class="tag c-green">&#10003; FOUND</div>
+  </div>
+  <div class="step">
+    <div class="icon c-amber">#</div>
+    <div><div class="label c-amber">4 · Code names still work</div>
+      <div class="body mono">E4021 &#8594; 0.56 &nbsp;src/billing/errors.py</div></div><div></div>
+  </div>
+  <p class="foot c-green">Measured: the right file first for 28 of 30 questions and in the top five for all 30.</p>
+  <p class="foot dim" style="margin-top:8px;font-size:16px">Real output with nomic-embed-text on Ollama, from the recorded demo and the benchmark workflow.</p>
+</body></html>

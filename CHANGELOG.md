@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- A real demo recorded with `nomic-embed-text` by a new `demo` workflow (raw recording in
+  `docs/demo.cast`), replacing the illustration; problem and solution cards and an architecture
+  picture from real output; and a landing page for the docs site.
+
 ### Security
 
 - CI installs its tools (ruff, mypy, pytest, MkDocs, build) from hash-locked requirement files, and

@@ -1,0 +1,7 @@
+.scout-hero { text-align: center; padding: 1.5rem 0 1rem; }
+.scout-hero h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 0.6rem; color: var(--md-typeset-color); }
+.scout-hero p { font-size: 1.05rem; max-width: 46rem; margin: 0 auto 1.2rem; }
+.scout-demo { display: block; width: 100%; border-radius: 0.8rem; margin: 1rem 0 0.4rem; }
+.scout-caption { text-align: center; font-size: 0.75rem; opacity: 0.75; }
+.md-typeset img[src$="problem.png"], .md-typeset img[src$="solution.png"],
+.md-typeset img[src$="architecture.png"] { border-radius: 0.8rem; }
