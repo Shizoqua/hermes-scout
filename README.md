@@ -60,6 +60,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [Roadmap](#roadmap)
 - [Development](#development)
 - [Contributing](#contributing)
+- [Star History](#star-history)
 - [License](#license)
 
 ## Why
@@ -339,7 +340,15 @@ problems privately as described in [SECURITY.md](SECURITY.md). Release notes liv
 
 If hermes-scout is useful to you, a star helps other people find it.
 
-[![Star history](https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Date)](https://star-history.com/#Shizoqua/hermes-scout&Date)
+## Star History
+
+<a href="https://star-history.com/#Shizoqua/hermes-scout&Timeline">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline" />
+    <img alt="Star history of hermes-scout" src="https://api.star-history.com/svg?repos=Shizoqua/hermes-scout&type=Timeline&theme=dark" />
+  </picture>
+</a>
 
 ## License
 
