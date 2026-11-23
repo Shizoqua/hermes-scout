@@ -8,6 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Documentation
 
+- Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
 - Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
 - Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
 - Clarified first-run setup checks for both Hermes and CLI users, with example filtered and keyword searches in the README.
