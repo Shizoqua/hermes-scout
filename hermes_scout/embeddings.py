@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import math
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from typing import Any
@@ -17,6 +18,28 @@ USER_AGENT = "hermes-scout/0.3.0"
 DEFAULT_BASE_URL = "http://localhost:11434/v1"  # Ollama's OpenAI-compatible API
 DEFAULT_MODEL = "nomic-embed-text"
 Opener = Callable[..., Any]
+
+
+def _origin(url: str) -> tuple[str, str]:
+    parts = urllib.parse.urlsplit(url)
+    return parts.scheme.lower(), parts.netloc.lower()
+
+
+class _SameOriginCredentials(urllib.request.HTTPRedirectHandler):
+    """Follow redirects, but never carry the Authorization header to another origin."""
+
+    def redirect_request(
+        self, req: urllib.request.Request, fp: Any, code: int, msg: str, headers: Any, newurl: str
+    ) -> urllib.request.Request | None:
+        new = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if new is not None and _origin(newurl) != _origin(req.full_url):
+            for name in [k for k in new.headers if k.lower() == "authorization"]:
+                del new.headers[name]
+            new.unredirected_hdrs.pop("Authorization", None)
+        return new
+
+
+_default_opener = urllib.request.build_opener(_SameOriginCredentials()).open
 
 
 class EmbeddingError(RuntimeError):
@@ -48,8 +71,8 @@ def embed_texts(
 ) -> list[list[float]]:
     """One embedding vector per text, in input order.
 
-    ``opener`` defaults to ``urllib.request.urlopen``; a caller sending an API key passes an opener
-    that drops credentials on a cross-origin redirect.
+    ``opener`` defaults to a standard-library opener that drops the API key on a redirect to another
+    origin; Hermes passes its own credential-safe opener.
     """
     if not texts:
         return []
@@ -61,7 +84,7 @@ def embed_texts(
         url, data=json.dumps({"model": model, "input": texts}).encode("utf-8"), headers=headers, method="POST"
     )
     try:
-        with (opener or urllib.request.urlopen)(request, timeout=timeout) as response:
+        with (opener or _default_opener)(request, timeout=timeout) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as err:
         hint = " Check the model name (for Ollama: `ollama pull " + model + "`)." if err.code in (400, 404) else ""
@@ -71,8 +94,8 @@ def embed_texts(
     except urllib.error.URLError as err:
         raise EmbeddingError(
             f"cannot reach the embeddings server at {base_url} ({err.reason}). Start it (for Ollama: "
-            f"`ollama serve`, then `ollama pull {model}`) or point the plugin's base_url setting at another "
-            "OpenAI-compatible embeddings endpoint."
+            f"`ollama serve`, then `ollama pull {model}`) or point base_url (the plugin setting, or --base-url "
+            "on the command line) at another OpenAI-compatible embeddings endpoint."
         ) from err
     except (TimeoutError, ValueError) as err:
         raise EmbeddingError(f"embeddings server at {base_url} gave no usable answer: {err}") from err

@@ -89,3 +89,59 @@ def test_unreachable_server_explains_how_to_fix_it():
 
 def test_no_texts_makes_no_request():
     assert embeddings.embed_texts([], base_url="http://127.0.0.1:9/v1", model="m") == []
+
+
+@pytest.fixture
+def redirect_pair():
+    """Two local servers. ``source`` answers every POST with a 302 to ``state['target']`` and, like
+    ``destination``, answers a GET with one embedding while recording the headers it received."""
+    seen = []
+    state = {"seen": seen}
+
+    def answer(handler):
+        seen.append((handler.server.server_port, {k.lower(): v for k, v in handler.headers.items()}))
+        raw = json.dumps({"data": [{"index": 0, "embedding": [1.0, 0.0]}]}).encode()
+        handler.send_response(200)
+        handler.send_header("Content-Length", str(len(raw)))
+        handler.end_headers()
+        handler.wfile.write(raw)
+
+    class Source(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers["Content-Length"]))
+            self.send_response(302)
+            self.send_header("Location", state["target"])
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        def do_GET(self):
+            answer(self)
+
+        def log_message(self, *args):
+            pass
+
+    class Destination(Source):
+        pass
+
+    servers = [ThreadingHTTPServer(("127.0.0.1", 0), handler) for handler in (Source, Destination)]
+    threads = [threading.Thread(target=s.serve_forever, daemon=True) for s in servers]
+    for thread in threads:
+        thread.start()
+    state["source"] = f"http://127.0.0.1:{servers[0].server_port}/v1"
+    state["same_origin"] = f"http://127.0.0.1:{servers[0].server_port}/v2/embeddings"
+    state["other_origin"] = f"http://127.0.0.1:{servers[1].server_port}/v1/embeddings"
+    yield state
+    for server in servers:
+        server.shutdown()
+        server.server_close()
+    for thread in threads:
+        thread.join(timeout=5)
+
+
+@pytest.mark.parametrize("target,keeps_key", [("other_origin", False), ("same_origin", True)])
+def test_api_key_follows_redirects_only_within_the_same_origin(redirect_pair, target, keeps_key):
+    redirect_pair["target"] = redirect_pair[target]
+    vectors = embeddings.embed_texts(["a"], base_url=redirect_pair["source"], model="m", api_key="test-key")
+    assert vectors == [[1.0, 0.0]]
+    [(_, headers)] = redirect_pair["seen"]
+    assert ("authorization" in headers) is keeps_key

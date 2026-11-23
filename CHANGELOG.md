@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Documentation
 
+- README: what's new, example questions, what hermes-scout is and is not, screenshots of real
+  output, and a PRIVACY.md that answers what is read, stored and sent.
 - Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
 - Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
 - Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
@@ -26,6 +28,13 @@ All notable changes to this project are documented here. The format follows
 - A retrieval benchmark: a synthetic project, 30 questions with known answers and
   `scripts/benchmark.py`, which reports hit@1, hit@5 and MRR for each ranking mode. A `benchmark`
   workflow runs it against a real model in a pinned Ollama container.
+
+### Fixed
+
+- The command line no longer sends `SCOUT_API_KEY` to another site when a hosted embeddings server
+  redirects there; the key now follows redirects only within the same origin, as it already did
+  inside Hermes.
+- The "cannot reach the embeddings server" hint names `--base-url` for command line users.
 
 ### Changed
 
