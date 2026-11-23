@@ -30,6 +30,7 @@ DEFAULTS: dict[str, Any] = {
     "max_files": 2000,
     "max_file_kb": 1000,
     "respect_gitignore": True,
+    "read_documents": True,
     "ranking": "hybrid",
 }
 # One indexing pass at a time: two concurrent first searches of a big folder would embed it twice.
@@ -112,6 +113,7 @@ def _prepare(ctx: Any, args: dict[str, Any]) -> Prepared | dict[str, Any]:
             max_file_bytes=_setting(ctx, "max_file_kb") * 1024,
             is_blocked=_read_blocked,
             respect_gitignore=_setting(ctx, "respect_gitignore"),
+            read_documents=_setting(ctx, "read_documents"),
         )
     )
     conn = _connect()

@@ -49,6 +49,11 @@ config_schema:
     default: true
     label: Respect .gitignore
     description: "Skip files and folders that .gitignore files in the searched folder ignore"
+  read_documents:
+    type: bool
+    default: true
+    label: Read PDF and Word files
+    description: "Also index the text of PDF and Word (.docx) files up to 20 MB, extracted on this machine"
   ranking:
     type: str
     default: hybrid

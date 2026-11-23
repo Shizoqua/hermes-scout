@@ -45,6 +45,20 @@ Common text, documentation, code and config extensions (`.md`, `.txt`, `.py`, `.
 (`node_modules`, `venv`, `dist`, `build`, ...), symlinks, binary files and files over the size limit.
 Inside Hermes, paths Hermes's file tools refuse to read are skipped as well.
 
+## PDF and Word files
+
+PDF and Word (`.docx`) files up to 20 MB are indexed by their text, extracted on your machine with
+Python's standard library. Each PDF page starts with a `[page N]` line, so a result's passage shows
+which page it came from. Turn this off with the `read_documents` setting or `--no-documents`.
+
+What works and what does not:
+
+- Text-based PDFs, the usual kind exported from Word, LibreOffice, Google Docs or LaTeX, including
+  accented and non-Latin text when the PDF maps its fonts to Unicode.
+- Word `.docx` files: body text, tables, footnotes and endnotes. Older `.doc` files are not read.
+- Scanned PDFs (pictures of pages) and encrypted PDFs contain no extractable text and are skipped,
+  as is any file that cannot be read. Nothing is guessed: such files simply do not appear in results.
+
 ## `.gitignore`
 
 Files and folders that a `.gitignore` file ignores are left out of the index, the way git would:

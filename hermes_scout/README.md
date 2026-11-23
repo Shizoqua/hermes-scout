@@ -61,6 +61,7 @@ Edit them in the Desktop app (**Settings, Plugins, hermes-scout**) or with
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
+| `read_documents` | `true` | Also index the text of PDF and Word (`.docx`) files up to 20 MB |
 | `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compatible APIs.
@@ -81,7 +82,9 @@ A bundled `scout` skill tells the agent when to search by meaning and how to cit
   you search.
 - **Files read:** text files under the folder Hermes asks to search. Hidden files, dependency and
   build folders, anything a `.gitignore` ignores, binaries, oversized files and every path Hermes's
-  file tools refuse (such as `.env` files) are skipped. The plugin never writes to that folder.
+  file tools refuse (such as `.env` files) are skipped. PDF and Word (`.docx`) files are read too,
+  unless `read_documents` is off; their text is extracted locally. The plugin never writes to that
+  folder.
 - **Files written:** the index database in the plugin's own data folder only. `/scout clear`
   deletes rows from it; nothing else is ever deleted.
 - **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.

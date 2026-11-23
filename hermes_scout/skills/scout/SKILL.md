@@ -23,7 +23,8 @@ tags: [search, files, notes, code, retrieval]
 - The exact string is known and short (a function name, an error code) and the folder is small:
   `scout_search` with `ranking: keyword`, or a plain text search, is enough.
 - The user named one specific file: read it directly.
-- The files are not text (images, binaries): they are not indexed.
+- The files are images or other binaries: they are not indexed. PDF and Word (.docx) files are,
+  and results from a PDF start with a `[page N]` line that says which page to cite.
 
 ## How to use it well
 

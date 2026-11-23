@@ -78,6 +78,7 @@ hermes-scout clear --all       # forget every index
 | `--max-files` | (none) | `2000` |
 | `--max-file-kb` | (none) | `1000` |
 | `--no-gitignore` | (none) | off: files `.gitignore` ignores are skipped |
+| `--no-documents` | (none) | off: PDF and Word (`.docx`) files are indexed |
 | `-g`, `--glob` | (none) | every indexed file |
 | `--ranking` (search) | (none) | `hybrid` |
 
