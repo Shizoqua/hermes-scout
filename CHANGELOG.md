@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
+
 ### Added
 
 - `/scout` command in Hermes: `doctor` checks the embeddings server, the model and keyword search
