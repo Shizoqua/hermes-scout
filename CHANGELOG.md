@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- A logo, also used as the docs site's favicon.
+- Strict type checking with mypy in CI.
+- An OpenSSF Scorecard workflow and badge.
+
 ## [0.2.0] - 2026-11-22
 
 ### Added

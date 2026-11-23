@@ -10,6 +10,7 @@ import json
 import logging
 import sqlite3
 import threading
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +61,8 @@ def _resolve_root(raw: Any) -> Path:
 def _read_blocked(path: Path) -> str | None:
     from agent.file_safety import get_read_block_error
 
-    return get_read_block_error(str(path))
+    error: str | None = get_read_block_error(str(path))
+    return error
 
 
 def _connect() -> sqlite3.Connection:
@@ -71,7 +73,7 @@ def _connect() -> sqlite3.Connection:
     return conn
 
 
-def _embedder(ctx: Any):
+def _embedder(ctx: Any) -> tuple[str, engine.Embedder]:
     from agent.secret_scope import get_secret
 
     base_url, model = _setting(ctx, "base_url"), _setting(ctx, "embedding_model")
@@ -86,7 +88,7 @@ def _embedder(ctx: Any):
     )
 
 
-def _search(ctx: Any, args: dict) -> dict:
+def _search(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
     query = str(args.get("query") or "").strip()
     if not query:
         return {"error": "query is required"}
@@ -120,8 +122,8 @@ def _search(ctx: Any, args: dict) -> dict:
     return out
 
 
-def _make_handler(ctx: Any):
-    def handler(args: dict, **_kwargs: Any) -> str:
+def _make_handler(ctx: Any) -> Callable[..., str]:
+    def handler(args: dict[str, Any], **_kwargs: Any) -> str:
         try:
             return json.dumps(_search(ctx, args or {}), ensure_ascii=False)
         except embeddings.EmbeddingError as err:

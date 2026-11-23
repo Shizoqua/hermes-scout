@@ -46,3 +46,13 @@ exclude = ["docs/", ".github/"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-p no:cacheprovider"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["hermes_scout"]
+
+[[tool.mypy.overrides]]
+# Hermes's own modules, imported lazily inside the plugin; not installed when type checking.
+module = ["agent.*", "plugins.*", "hermes_cli.*"]
+ignore_missing_imports = true

@@ -12,6 +12,7 @@ import os
 import sqlite3
 from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 from . import patterns
 
@@ -279,7 +280,7 @@ def search(
     query_vector: list[float],
     top_k: int = 5,
     path_filter: patterns.PathFilter | None = None,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """The ``top_k`` chunks most similar to ``query_vector`` by cosine similarity, best first,
     limited to files ``path_filter`` matches when one is given."""
     q_norm = math.sqrt(sum(v * v for v in query_vector))

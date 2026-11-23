@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/logo.svg" width="88" height="88" alt="hermes-scout logo">
+
 # hermes-scout
 
 **Search your local files by meaning, not just keywords.**<br>
@@ -16,6 +18,7 @@ A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin and a stan
 [![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-a855f7?labelColor=1e1b2e&style=flat-square)](https://github.com/NousResearch/hermes-agent)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-zero-14b8a6?labelColor=1e1b2e&style=flat-square)](#development)
 [![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b?labelColor=1e1b2e&style=flat-square)](LICENSE)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Shizoqua/hermes-scout?label=openssf%20scorecard&logo=securityscorecard&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://scorecard.dev/viewer/?uri=github.com/Shizoqua/hermes-scout)
 
 [**Documentation**](https://shizoqua.github.io/hermes-scout/) ·
 [**Getting started**](https://shizoqua.github.io/hermes-scout/getting-started/) ·
@@ -264,9 +267,10 @@ only the Python standard library and do not import Hermes, so the tests run with
 or network access:
 
 ```bash
-python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10"
+python -m pip install "pytest>=8,<9" "pytest-cov>=6,<8" "ruff==0.15.10" "mypy==1.18.2"
 python -m pytest --cov=hermes_scout     # 77 tests, no network
 ruff check . && ruff format --check .
+mypy                                    # strict type check
 ```
 
 | Path | Contents |
@@ -274,6 +278,7 @@ ruff check . && ruff format --check .
 | `hermes_scout/__init__.py` | Hermes wiring: tool registration, settings, file-safety checks, storage |
 | `hermes_scout/plugin.yaml` | Plugin manifest read by Hermes |
 | `hermes_scout/engine.py` | Chunking, file walking, the SQLite index and ranking |
+| `hermes_scout/patterns.py` | `.gitignore` rules and search filters |
 | `hermes_scout/embeddings.py` | OpenAI-compatible embeddings client |
 | `hermes_scout/cli.py` | The `hermes-scout` command |
 | `docs/` | The documentation site (MkDocs Material) |
@@ -285,8 +290,9 @@ hermes plugins validate hermes_scout --install-deps
 hermes plugins doctor hermes_scout --ci
 ```
 
-Every push runs lint, the tests on Python 3.11 to 3.14 with a 90% coverage floor, CodeQL security
-analysis and a strict docs build. Publishing a GitHub release uploads the package to PyPI.
+Every push runs lint, a strict type check, the tests on Linux, macOS and Windows with Python 3.11
+to 3.14 and a 90% coverage floor, CodeQL security analysis, an OpenSSF Scorecard rating and a strict
+docs build. Publishing a GitHub release uploads the package to PyPI.
 
 ## Contributing
 
