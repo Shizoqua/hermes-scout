@@ -12,21 +12,20 @@ theme:
   logo: logo.svg
   favicon: logo.svg
   palette:
-    - scheme: slate
-      primary: custom
-      accent: custom
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
-    - scheme: default
-      primary: custom
-      accent: custom
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: light blue
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
-  font:
-    text: Inter
-    code: JetBrains Mono
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: light blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.instant
     - navigation.sections
@@ -74,5 +73,6 @@ markdown_extensions:
       alternate_style: true
 
 exclude_docs: |
+  banner.svg
   visuals/
   demo.cast

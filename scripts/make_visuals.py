@@ -102,53 +102,106 @@ QUESTION = "how do we keep a copy of the database in case it gets lost"
 MEASURED = "Measured: <b>the right file first for 28 of 30 questions, in the top five for all 30</b>"
 
 
+NODE_W, NODE_H = 262, 150
+COLUMNS = [50, 361, 672, 983, 1294]
+LANES = [(20, 250), (350, 580)]  # (top, bottom) of each lane box
+
+
+def node(col: int, lane: int, icon: str, color: str, title: str, detail: str) -> str:
+    x, y = COLUMNS[col], LANES[lane][0] + 58
+    return (
+        f'<div class="node" style="left:{x}px;top:{y}px">{tile(icon, color, 50)}'
+        f"<b>{title}</b><span>{detail}</span></div>"
+    )
+
+
+def arrow(x1: float, y1: float, x2: float, y2: float, color: str, label: str = "", both: bool = False) -> str:
+    start = f' marker-start="url(#s-{color[1:]})"' if both else ""
+    line = (
+        f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{color}" stroke-width="3"'
+        f'{start} marker-end="url(#e-{color[1:]})"/>'
+    )
+    if label:
+        tx, ty = (x1 + x2) / 2, (y1 + y2) / 2
+        if y1 == y2:
+            line += f'<text x="{tx}" y="{ty - 12}" text-anchor="middle" fill="{color}">{label}</text>'
+        else:
+            line += f'<text x="{tx + 12}" y="{ty + 5}" fill="{color}">{label}</text>'
+    return line
+
+
 def architecture() -> str:
-    stages = [
-        (
-            "Read",
-            "The folder you name, safely",
-            "folder",
-            "blue",
-            [
-                ("folder", "blue", "Notes, docs and code", ".md .txt .py .ts .go .json .yaml"),
-                ("doc", "red", "PDF and Word files", "text extracted locally, page markers"),
-                ("shield", "green", "Skipped on purpose", ".gitignore, hidden, binary, .env"),
-            ],
+    blue, green, pink = "#7dd3fc", "#4ade80", "#f9a8d4"
+    nodes = [
+        node(0, 0, "folder", "blue", "Your folder", "notes, docs, code, PDF and Word files"),
+        node(1, 0, "shield", "green", "Read safely", "skips .gitignore, hidden, binary and .env files"),
+        node(2, 0, "layers", "indigo", "Split into chunks", "whole lines, about 1,200 characters each"),
+        node(3, 0, "spark", "pink", "Embeddings server", "turns text into meaning vectors; Ollama by default"),
+        node(4, 0, "db", "purple", "SQLite index", "meaning vectors and a keyword index (FTS5, BM25)"),
+        node(0, 1, "chat", "purple", "A question", "asked in Hermes or on the command line"),
+        node(
+            1, 1, "code", "yellow", "Pick the method", "questions in words: by meaning. Code names: exact matches first"
         ),
-        (
-            "Index",
-            "Only changed files are re-read",
-            "db",
-            "purple",
-            [
-                ("layers", "indigo", "Chunks of whole lines", "about 1,200 characters each"),
-                ("spark", "pink", "Meaning vectors", "any /embeddings server, Ollama default"),
-                ("text", "orange", "Keyword index", "SQLite FTS5, BM25"),
-            ],
-        ),
-        (
-            "Rank",
-            "Right method for each query",
-            "search",
+        node(2, 1, "text", "orange", "Keyword lookup", "the question's words, filler words left out"),
+        node(3, 1, "spark", "pink", "Question vector", "made by the same model as the chunks"),
+        node(
+            4,
+            1,
+            "check",
             "green",
-            [
-                ("chat", "purple", "Questions in words", "ranked by meaning"),
-                ("code", "yellow", "Code names", "exact matches first: E4021"),
-                ("check", "green", "Results you can cite", '<span class="mono">0.63 docs/backups.md:1-15</span>'),
-            ],
+            "Rank and cite",
+            'best match first, ready to cite<br><span class="mono">0.63 docs/backups.md:1-15</span>',
         ),
     ]
-    cols = "".join(
-        f'<div class="fold"><div class="head">{tile(icon, color, 72)}'
-        f"<div><b>{n}. {title}</b><span>{detail}</span></div></div>"
-        + "".join(item(*entry) for entry in entries)
-        + "</div>"
-        for n, (title, detail, icon, color, entries) in enumerate(stages, start=1)
+    mid = [lane[0] + 58 + NODE_H / 2 for lane in LANES]
+    lines = []
+    for col in range(4):
+        x1, x2 = COLUMNS[col] + NODE_W + 4, COLUMNS[col + 1] - 6
+        lines.append(arrow(x1, mid[0], x2, mid[0], blue))
+        lines.append(arrow(x1, mid[1], x2, mid[1], green))
+    upper, lower = LANES[0][0] + 58 + NODE_H + 6, LANES[1][0] + 58 - 6
+    server_x = COLUMNS[3] + NODE_W / 2
+    index_x = COLUMNS[4] + NODE_W / 2
+    lines.append(arrow(server_x, lower, server_x, upper, pink, "question in, vector out", both=True))
+    lines.append(arrow(index_x, upper, index_x, lower, "#c084fc", "compare"))
+    markers = "".join(
+        f'<marker id="e-{c[1:]}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" '
+        f'orient="auto"><path d="M0 0L10 5L0 10z" fill="{c}"/></marker>'
+        f'<marker id="s-{c[1:]}" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" '
+        f'orient="auto"><path d="M10 0L0 5L10 10z" fill="{c}"/></marker>'
+        for c in (blue, green, pink, "#c084fc")
     )
+    lanes = "".join(
+        f'<div class="lane" style="top:{top}px;height:{bottom - top}px"><span class="pill {kind}">{label}</span></div>'
+        for (top, bottom), kind, label in zip(
+            LANES,
+            ("one", "two"),
+            (
+                "1&nbsp; Index: the first search of a folder, then only files that changed",
+                "2&nbsp; Search: every question",
+            ),
+            strict=True,
+        )
+    )
+    svg = f'<svg class="wires" width="1600" height="600"><defs>{markers}</defs>{"".join(lines)}</svg>'
     return page(
-        '<h1>How hermes-scout works</h1><p class="sub">Your files stay on your machine. Only text chunks go to the '
-        f'embeddings server you choose.</p><div class="row" style="grid-template-columns:repeat(3,1fr)">{cols}</div>'
-        f'<p class="foot">{MEASURED}</p>'
+        '<h1>How hermes-scout works</h1><p class="sub">Your files stay on your machine. Only text chunks go to '
+        f'the embeddings server you choose.</p><div class="canvas">{lanes}{svg}{"".join(nodes)}</div>'
+        f'<p class="foot">{MEASURED}</p>',
+        "body{padding:40px 0 34px}.sub{margin-bottom:0}"
+        ".canvas{position:relative;width:1600px;height:600px;margin-top:10px}"
+        ".lane{position:absolute;left:30px;right:30px;border-radius:30px;background:#0e0e10;border:1px solid #232326}"
+        ".pill{position:absolute;left:24px;top:16px;font-size:17px;font-weight:700;padding:7px 16px;"
+        "border-radius:999px}"
+        ".pill.one{background:#0c2a3d;color:#7dd3fc}.pill.two{background:#0f2e1b;color:#86efac}"
+        ".wires{position:absolute;left:0;top:0;overflow:visible}"
+        ".wires text{font:600 15px Inter,sans-serif}"
+        ".node{position:absolute;width:262px;height:150px;background:#1c1c1e;border-radius:24px;padding:16px 18px;"
+        "display:grid;grid-template-columns:50px 1fr;grid-template-rows:auto 1fr;column-gap:14px;row-gap:8px}"
+        ".node .tile{grid-row:1}.node b{align-self:center;font-size:19px;line-height:1.2}"
+        ".node span{grid-column:1/3;color:#a1a1aa;font-size:15.5px;line-height:1.35}"
+        ".node .mono{color:#86efac;font-size:15px}"
+        ".foot{margin-top:6px}",
     )
 
 
