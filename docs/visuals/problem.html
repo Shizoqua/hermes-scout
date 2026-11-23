@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Keyword search</title><link rel="stylesheet" href="card.css"></head>
+<body>
+  <h1 class="c-cyan">KEYWORD SEARCH</h1>
+  <p class="sub">Only finds the words you remember.</p>
+  <div class="step">
+    <div class="icon c-violet">?</div>
+    <div><div class="label c-violet">1 · The question</div>
+      <div class="body">"how do we keep a copy of the database in case it gets lost"</div></div><div></div>
+  </div>
+  <div class="step">
+    <div class="icon c-cyan">&#8801;</div>
+    <div><div class="label c-cyan">2 · The answer is in docs/backups.md, in other words</div>
+      <div class="body mono dim">A scheduled job runs pg_dump at 02:00 UTC ... Files are kept for 30 days</div></div><div></div>
+  </div>
+  <div class="step bad">
+    <div class="icon c-red">&#215;</div>
+    <div><div class="label c-red">3 · Keyword results</div>
+      <div class="body mono">src/uploads/images.py &nbsp; src/storage/cache.py &nbsp; notes/hiring.md</div></div>
+    <div class="tag c-red">&#215; MISSED</div>
+  </div>
+  <p class="foot c-amber">&#9888; The right file shares no words with the question, so it is not found at all.</p>
+  <p class="foot dim" style="margin-top:8px;font-size:16px">Real output: hermes-scout search ... --ranking keyword on the benchmark project. Across 18 reworded questions, keyword search finds the right file first 39% of the time.</p>
+</body></html>

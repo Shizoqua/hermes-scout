@@ -42,9 +42,10 @@ hermes-scout works two ways:
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
 
-![Demo: asking Hermes where rate limits are handled, and the ranked passages scout_search returns](docs/demo.gif)
+![Demo: hermes-scout doctor, a keyword search that misses the backups doc, the default search that finds it first, an error code search and find similar](docs/demo.gif)
 
-<sub>An illustration of a session. For measured results, see the [benchmark](#benchmark).</sub>
+<sub>A real session with `nomic-embed-text` on Ollama, on the synthetic benchmark project. The raw
+recording is [docs/demo.cast](docs/demo.cast); only the typing speed is paced.</sub>
 
 ## What's new in 0.4
 
@@ -90,6 +91,9 @@ Scanned PDFs (pictures of pages) and images are not read. See [PRIVACY.md](PRIVA
   </tr>
 </table>
 
+The demo, the cards and the diagram are made by scripts too: the `demo` workflow records a real
+session (`scripts/record_demo.py`), `scripts/render_demo.py` turns it into `docs/demo.gif` and
+`docs/demo.mp4`, and `scripts/make_visuals.py` renders the pictures from `docs/visuals/`.
 Each screenshot shows real hermes-scout output on the synthetic project in `benchmarks/corpus`, or
 the measured benchmark numbers, made by [`scripts/make_screenshots.py`](scripts/make_screenshots.py).
 
@@ -124,6 +128,12 @@ Keyword search only finds the words you remember. Notes say "back off and retry"
 `except HTTPError as err: if err.code == 429`, and docs say "throttling". You remember none of
 those phrasings. Semantic search compares *meaning*: the query and every passage are turned into
 embedding vectors, and the passages pointing in the most similar direction come back first.
+
+![Keyword search: the question shares no words with docs/backups.md, so it is not found](docs/problem.png)
+
+![hermes-scout: the same question puts docs/backups.md first, and the code name E4021 still works](docs/solution.png)
+
+Both cards show real output on the benchmark project; the semantic result is from the recorded demo.
 
 ## Features
 
@@ -282,22 +292,7 @@ second search reused the index instead of embedding the folder again.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    A[Folder of text files] --> B[Split into overlapping<br/>line-aligned chunks]
-    B --> C{New or changed<br/>since last search?}
-    C -- yes --> D[Embed via<br/>/embeddings endpoint]
-    C -- no --> E[(SQLite index)]
-    D --> E
-    Q[Your question] --> F[Embed the question]
-    E --> G[Rank by meaning<br/>cosine similarity]
-    E --> K[Rank by exact words<br/>BM25 keyword index]
-    F --> G
-    Q --> K
-    G --> M[Merge both rankings<br/>weighted score fusion]
-    K --> M
-    M --> R[Top passages with<br/>path, lines, score]
-```
+![How hermes-scout works: read, index, rank](docs/architecture.png)
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
    Neighbouring chunks share up to two lines, so a passage that straddles a boundary is still found
