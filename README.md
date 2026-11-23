@@ -245,8 +245,8 @@ on Ollama ([details and method](https://shizoqua.github.io/hermes-scout/benchmar
 
 | Ranking | Right file first | Right file in top 5 |
 |---|---|---|
-| Meaning (`semantic`) | 93% | 100% |
-| Meaning and keywords (`hybrid`) | 83% | 100% |
+| Default (`hybrid`) | 93% | 100% |
+| Meaning only (`semantic`) | 93% | 100% |
 | Keywords only (`keyword`) | 63% | 83% |
 
 Exact names and error codes are found first in every mode. Questions worded differently from the
