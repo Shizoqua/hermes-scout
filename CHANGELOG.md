@@ -14,6 +14,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The hash-locked CI files carry the command that rebuilds them, so Dependabot keeps each tool
+  within its range (pytest 8) and keeps the Windows-only packages the tests need.
 - The line-range parser for `scout_similar` no longer assigns a value it never reads.
 
 ## [0.4.0] - 2026-11-23
