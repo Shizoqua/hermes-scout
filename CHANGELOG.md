@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
+
 ### Added
 
 - `/scout` command in Hermes: `doctor` checks the embeddings server, the model and keyword search
