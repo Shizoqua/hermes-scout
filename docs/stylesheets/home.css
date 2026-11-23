@@ -1,7 +1,109 @@
+/* One look for the site and the README pictures: black background, grey rounded panels,
+   gradient icon tiles with white symbols, purple accents. */
+
+:root {
+  --md-primary-fg-color: #7c3aed;
+  --md-primary-fg-color--light: #a78bfa;
+  --md-primary-fg-color--dark: #5b21b6;
+  --md-accent-fg-color: #a855f7;
+  --scout-panel: #f4f4f5;
+  --scout-item: #e4e4e7;
+  --scout-dim: #52525b;
+  --scout-radius: 1.4rem;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 240;
+  --md-default-bg-color: #000;
+  --md-default-fg-color: #f4f4f5;
+  --md-default-fg-color--light: #a1a1aa;
+  --md-default-fg-color--lighter: #71717a;
+  --md-default-fg-color--lightest: #3f3f46;
+  --md-typeset-color: #e4e4e7;
+  --md-typeset-a-color: #c084fc;
+  --md-accent-fg-color: #c084fc;
+  --md-code-bg-color: #1c1c1e;
+  --md-code-fg-color: #e4e4e7;
+  --md-footer-bg-color: #0a0a0a;
+  --md-footer-bg-color--dark: #000;
+  --scout-panel: #1c1c1e;
+  --scout-item: #2c2c2e;
+  --scout-dim: #a1a1aa;
+}
+
+/* Header and navigation: black with a thin line, like the pictures. */
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #1c1c1e;
+}
+.md-header__button.md-logo img { height: 1.6rem; border-radius: 0.4rem; }
+
+/* Rounded panels for code, tables, notes and buttons. */
+.md-typeset pre > code { border-radius: 0.9rem; }
+.md-typeset .admonition, .md-typeset details { border-radius: 1rem; border-width: 0; background: var(--scout-panel); box-shadow: none; }
+.md-typeset table:not([class]) { border-radius: 1rem; border: 0; background: var(--scout-panel); overflow: hidden; }
+.md-typeset table:not([class]) th { background: var(--scout-item); }
+.md-typeset .tabbed-set { border-radius: 1rem; }
+.md-typeset .md-button { border-radius: 999px; padding: 0.55em 1.5em; }
+.md-typeset .md-button--primary {
+  background: linear-gradient(160deg, #c084fc, #7c3aed);
+  border: 0;
+  color: #fff;
+}
+.md-typeset .md-button--primary:hover { filter: brightness(1.1); color: #fff; }
+
+/* Cards: grey panels with a gradient tile in front of each icon. */
+.md-typeset .grid.cards > ul > li {
+  background: var(--scout-panel);
+  border: 0;
+  border-radius: var(--scout-radius);
+  padding: 1.1rem 1.2rem;
+  transition: transform 0.15s ease;
+}
+.md-typeset .grid.cards > ul > li:hover { transform: translateY(-2px); box-shadow: none; }
+.md-typeset .grid.cards .twemoji:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: 0 0 0.6rem;
+  border-radius: 0.6rem;
+  color: #fff;
+  background: linear-gradient(160deg, #c084fc, #7c3aed);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  vertical-align: middle;
+}
+.md-typeset .grid.cards .twemoji:first-child svg { width: 1.35rem; height: 1.35rem; max-height: none; fill: #fff; }
+.md-typeset .grid.cards > ul > li:nth-child(8n+2) .twemoji:first-child { background: linear-gradient(160deg, #86efac, #16a34a); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+3) .twemoji:first-child { background: linear-gradient(160deg, #7dd3fc, #2563eb); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+4) .twemoji:first-child { background: linear-gradient(160deg, #fdba74, #ea580c); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+5) .twemoji:first-child { background: linear-gradient(160deg, #f9a8d4, #db2777); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+6) .twemoji:first-child { background: linear-gradient(160deg, #fde047, #f59e0b); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+7) .twemoji:first-child { background: linear-gradient(160deg, #fda4af, #e11d48); }
+.md-typeset .grid.cards > ul > li:nth-child(8n+8) .twemoji:first-child { background: linear-gradient(160deg, #a5b4fc, #4f46e5); }
+.md-typeset .grid.cards strong { color: var(--md-default-fg-color); }
+
+/* Landing page. */
 .scout-hero { text-align: center; padding: 1.5rem 0 1rem; }
-.scout-hero h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 0.6rem; color: var(--md-typeset-color); }
-.scout-hero p { font-size: 1.05rem; max-width: 46rem; margin: 0 auto 1.2rem; }
-.scout-demo { display: block; width: 100%; border-radius: 0.8rem; margin: 1rem 0 0.4rem; }
-.scout-caption { text-align: center; font-size: 0.75rem; opacity: 0.75; }
-.md-typeset img[src$="problem.png"], .md-typeset img[src$="solution.png"],
-.md-typeset img[src$="architecture.png"] { border-radius: 0.8rem; }
+.scout-hero img.scout-logo { width: 5rem; height: 5rem; border-radius: 1.15rem; box-shadow: 0 10px 40px rgba(124, 58, 237, 0.45); }
+.scout-hero h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.03em; margin: 1rem 0 0.6rem; color: var(--md-default-fg-color); }
+.scout-hero p { font-size: 1.05rem; max-width: 46rem; margin: 0 auto 1.2rem; color: var(--scout-dim); }
+.scout-hero p strong { color: var(--md-default-fg-color); }
+.scout-demo { display: block; width: 100%; border-radius: var(--scout-radius); margin: 1rem 0 0.4rem; }
+.scout-caption { text-align: center; font-size: 0.75rem; color: var(--scout-dim); }
+.md-typeset img[src$=".png"] { border-radius: var(--scout-radius); }
+
+/* Big numbers in the "Measured" cards. */
+.md-typeset .scout-stats .grid.cards strong:first-of-type { font-size: 1.6rem; color: #4ade80; display: block; }
+
+/* Section headings and the 2x2 "What's inside" grid. */
+.md-typeset h2 { font-weight: 800; letter-spacing: -0.02em; color: var(--md-default-fg-color); }
+.md-typeset .scout-inside { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+.md-typeset .scout-inside p { margin: 0; }
+.md-typeset .scout-inside img { display: block; width: 100%; transition: transform 0.15s ease; }
+.md-typeset .scout-inside a:hover img { transform: translateY(-2px); }
+@media (max-width: 44.9375em) { .md-typeset .scout-inside { grid-template-columns: 1fr; } }
+[data-md-color-scheme="slate"] .md-button:not(.md-button--primary) { background: #1c1c1e; border-color: #1c1c1e; color: #fff; }

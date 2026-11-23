@@ -1,29 +1,22 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>hermes-scout</title><link rel="stylesheet" href="card.css"></head>
-<body>
-  <h1 class="c-violet">HERMES-SCOUT</h1>
-  <p class="sub">Finds what you meant, and still finds exact names.</p>
-  <div class="step">
-    <div class="icon c-violet">?</div>
-    <div><div class="label c-violet">1 · The same question</div>
-      <div class="body">"how do we keep a copy of the database in case it gets lost"</div></div><div></div>
-  </div>
-  <div class="step">
-    <div class="icon c-cyan">&#8776;</div>
-    <div><div class="label c-cyan">2 · Compared by meaning</div>
-      <div class="body">The question and every passage become embedding vectors; the closest passages come first.</div></div><div></div>
-  </div>
-  <div class="step good">
-    <div class="icon c-green">&#10003;</div>
-    <div><div class="label c-green">3 · First result</div>
-      <div class="body mono">0.63 &nbsp;docs/backups.md:1-15 &nbsp;<span class="dim"># Backups and restores</span></div></div>
-    <div class="tag c-green">&#10003; FOUND</div>
-  </div>
-  <div class="step">
-    <div class="icon c-amber">#</div>
-    <div><div class="label c-amber">4 · Code names still work</div>
-      <div class="body mono">E4021 &#8594; 0.56 &nbsp;src/billing/errors.py</div></div><div></div>
-  </div>
-  <p class="foot c-green">Measured: the right file first for 28 of 30 questions and in the top five for all 30.</p>
-  <p class="foot dim" style="margin-top:8px;font-size:16px">Real output with nomic-embed-text on Ollama, from the recorded demo and the benchmark workflow.</p>
-</body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><style>
+* { box-sizing: border-box; margin: 0; }
+body { font-family: Inter, sans-serif; background: #000; color: #fff; padding: 44px 56px; }
+.tile { display: flex; align-items: center; justify-content: center; flex: none;
+        box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+h1 { text-align: center; font-size: 44px; font-weight: 800; letter-spacing: -0.5px; }
+.sub { text-align: center; color: #a1a1aa; font-size: 20px; margin: 8px 0 34px; }
+.row { display: grid; gap: 30px; }
+.fold { background: #1c1c1e; border-radius: 32px; padding: 24px; }
+.head { display: flex; gap: 16px; align-items: center; margin-bottom: 10px; }
+.head b { font-size: 26px; display: block; } .head span { color: #a1a1aa; font-size: 15px; }
+.it { display: flex; gap: 16px; align-items: center; background: #2c2c2e; border-radius: 20px;
+      padding: 14px 16px; margin-top: 12px; }
+.it b { font-size: 18px; display: block; margin-bottom: 2px; } .it span { color: #a1a1aa; font-size: 15.5px; }
+.it .grow { flex: 1; }
+.mono { font-family: "DejaVu Sans Mono", monospace; }
+.tag { font-family: "DejaVu Sans Mono", monospace; font-size: 15px; font-weight: 700;
+       border-radius: 999px; padding: 7px 14px; }
+.tag.good { background: #14532d; color: #86efac; } .tag.bad { background: #4c0519; color: #fda4af; }
+.foot { margin-top: 28px; text-align: center; font-size: 20px; color: #d4d4d8; } .foot b { color: #4ade80; }
+.note { margin-top: 8px; text-align: center; font-size: 15px; color: #71717a; }
+.fold .it:first-child{margin-top:0}</style></head><body><h1>hermes-scout</h1><p class="sub">Finds what you meant, and still finds exact names.</p><div class="fold"><div class="it"><div class="tile" style="width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,#c084fc,#7c3aed)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg></div><div class="grow"><b>The same question</b><span>&ldquo;how do we keep a copy of the database in case it gets lost&rdquo;</span></div></div><div class="it"><div class="tile" style="width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,#f9a8d4,#db2777)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="17" r="2"/><path d="M8 7.5l8-1M7 9l4 6.5M17 8l-4 7"/></svg></div><div class="grow"><b>Compared by meaning</b><span>The question and every passage become embedding vectors; the closest come first.</span></div></div><div class="it"><div class="tile" style="width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,#86efac,#16a34a)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div><div class="grow"><b>First result</b><span><span class="mono">0.63 &nbsp;docs/backups.md:1-15 &nbsp;# Backups and restores</span></span></div><span class="tag good">FOUND</span></div><div class="it"><div class="tile" style="width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,#fde047,#f59e0b)"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></div><div class="grow"><b>Code names still work</b><span><span class="mono">E4021 &rarr; 0.56 &nbsp;src/billing/errors.py</span></span></div></div></div><p class="foot">Measured: <b>the right file first for 28 of 30 questions, in the top five for all 30</b></p><p class="note">Real output with nomic-embed-text on Ollama, from the recorded demo and the benchmark workflow.</p></body></html>

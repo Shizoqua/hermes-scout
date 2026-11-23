@@ -7,18 +7,18 @@
 **Search your local files by meaning, not just keywords.**<br>
 A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin and a standalone command line tool.
 
-![hermes-scout: find anything in your files by meaning](docs/banner.png)
+[![Watch the 30-second demo: a question that keyword search misses, and hermes-scout finds first](docs/story-poster.png)](docs/story.mp4)
 
-[![PyPI](https://img.shields.io/pypi/v/hermes-scout?label=pypi&color=7c5cff&logo=pypi&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pypi.org/project/hermes-scout/)
-[![Downloads](https://img.shields.io/pepy/dt/hermes-scout?label=downloads&color=ec4899&logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pepy.tech/project/hermes-scout)
-[![tests](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/tests.yml?branch=main&label=tests&logo=githubactions&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
-[![docs](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/docs.yml?branch=main&label=docs&logo=materialformkdocs&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://shizoqua.github.io/hermes-scout/)
+[![PyPI](https://img.shields.io/pypi/v/hermes-scout?label=pypi&color=7c5cff&logo=pypi&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://pypi.org/project/hermes-scout/)
+[![Downloads](https://img.shields.io/pepy/dt/hermes-scout?label=downloads&color=ec4899&logo=python&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://pepy.tech/project/hermes-scout)
+[![tests](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/tests.yml?branch=main&label=tests&logo=githubactions&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
+[![docs](https://img.shields.io/github/actions/workflow/status/Shizoqua/hermes-scout/docs.yml?branch=main&label=docs&logo=materialformkdocs&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://shizoqua.github.io/hermes-scout/)
 <br>
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b82f6?logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://www.python.org/)
-[![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-a855f7?labelColor=1e1b2e&style=flat-square)](https://github.com/NousResearch/hermes-agent)
-[![Zero dependencies](https://img.shields.io/badge/dependencies-zero-14b8a6?labelColor=1e1b2e&style=flat-square)](#development)
-[![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b?labelColor=1e1b2e&style=flat-square)](LICENSE)
-[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Shizoqua/hermes-scout?label=openssf%20scorecard&logo=securityscorecard&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://scorecard.dev/viewer/?uri=github.com/Shizoqua/hermes-scout)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b82f6?logo=python&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://www.python.org/)
+[![Hermes Agent plugin](https://img.shields.io/badge/Hermes%20Agent-plugin-a855f7?labelColor=1c1c1e&style=flat-square)](https://github.com/NousResearch/hermes-agent)
+[![Zero dependencies](https://img.shields.io/badge/dependencies-zero-14b8a6?labelColor=1c1c1e&style=flat-square)](#development)
+[![License: MIT](https://img.shields.io/badge/license-MIT-f59e0b?labelColor=1c1c1e&style=flat-square)](LICENSE)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Shizoqua/hermes-scout?label=openssf%20scorecard&logo=securityscorecard&logoColor=white&labelColor=1c1c1e&style=flat-square)](https://scorecard.dev/viewer/?uri=github.com/Shizoqua/hermes-scout)
 
 [**Documentation**](https://shizoqua.github.io/hermes-scout/) ·
 [**Getting started**](https://shizoqua.github.io/hermes-scout/getting-started/) ·
@@ -42,10 +42,88 @@ hermes-scout works two ways:
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
 [Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
 
-![Demo: hermes-scout doctor, a keyword search that misses the backups doc, the default search that finds it first, an error code search and find similar](docs/demo.gif)
+## Contents
 
-<sub>A real session with `nomic-embed-text` on Ollama, on the synthetic benchmark project. The raw
-recording is [docs/demo.cast](docs/demo.cast); only the typing speed is paced.</sub>
+- [Why](#why)
+- [Architecture](#architecture)
+- [What's inside](#whats-inside)
+- [What's new in 0.4](#whats-new-in-04)
+- [What you can ask](#what-you-can-ask)
+- [What this is, and what it is not](#what-this-is-and-what-it-is-not)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Command line](#command-line)
+- [Choosing a search mode](#choosing-a-search-mode)
+- [In Hermes: the /scout command](#in-hermes-the-scout-command)
+- [Example](#example)
+- [How it works](#how-it-works)
+- [Benchmark](#benchmark)
+- [Supported embedding servers](#supported-embedding-servers)
+- [Settings](#settings)
+- [Troubleshooting](#troubleshooting)
+- [Disclosure](#disclosure)
+- [Roadmap](#roadmap)
+- [Repository layout](#repository-layout)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Star History](#star-history)
+- [License](#license)
+
+## Why
+
+Keyword search only finds the words you remember. Notes say "back off and retry", code says
+`except HTTPError as err: if err.code == 429`, and docs say "throttling". You remember none of
+those phrasings. Semantic search compares *meaning*: the query and every passage are turned into
+embedding vectors, and the passages pointing in the most similar direction come back first.
+
+![Keyword search: the question shares no words with docs/backups.md, so it is not found](docs/problem.png)
+
+![hermes-scout: the same question puts docs/backups.md first, and the code name E4021 still works](docs/solution.png)
+
+Both cards show real output on the benchmark project; the semantic result is from the recorded demo.
+
+## Architecture
+
+![How hermes-scout works: read the folder, index chunks as meaning vectors and keywords, rank each query the right way](docs/architecture.png)
+
+Details in [How it works](#how-it-works).
+
+## What's inside
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/cover-search.png" alt="scout_search: find passages by meaning and by exact names">
+      <h3><code>scout_search</code></h3>
+      <p>Finds the passages that answer a question in a folder of notes, docs, code, PDFs or Word files, best first, with file, line range and score.</p>
+      <p><b>Ask Hermes:</b> <i>"Search ~/notes for my backup plan."</i></p>
+      <p><b>Ranking:</b> <code>hybrid</code> (default), <code>semantic</code> or <code>keyword</code></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/cover-similar.png" alt="scout_similar: find the files most related to a file or a passage">
+      <h3><code>scout_similar</code></h3>
+      <p>Finds the files most related to a file, a line range of it, or a passage you paste: related notes, overlapping docs, code that does the same job.</p>
+      <p><b>Ask Hermes:</b> <i>"What else in ~/notes is like notes/ideas.md?"</i></p>
+      <p><b>Returns:</b> one result per file, closest first</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/cover-command.png" alt="/scout: check your setup and look after the index">
+      <h3><code>/scout</code></h3>
+      <p>A command inside Hermes to check the setup and look after the index, without asking the agent.</p>
+      <p><b>Try:</b> <code>/scout doctor</code>, <code>/scout status</code>, <code>/scout index ~/notes</code>, <code>/scout clear ~/notes</code></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/cover-cli.png" alt="hermes-scout: the same search in any terminal">
+      <h3><code>hermes-scout</code> command</h3>
+      <p>The same search in any terminal, no Hermes needed. <code>--json</code> output for scripts.</p>
+      <p><b>Install:</b> <code>pipx install hermes-scout</code></p>
+      <p><b>Try:</b> <code>hermes-scout search "how I set up backups" ~/notes</code></p>
+    </td>
+  </tr>
+</table>
 
 ## What's new in 0.4
 
@@ -80,6 +158,11 @@ Scanned PDFs (pictures of pages) and images are not read. See [PRIVACY.md](PRIVA
 
 ## Screenshots
 
+![Demo: hermes-scout doctor, a keyword search that misses the backups doc, the default search that finds it first, an error code search and find similar](docs/demo.gif)
+
+<sub>A real session with `nomic-embed-text` on Ollama, on the synthetic benchmark project. The raw
+recording is [docs/demo.cast](docs/demo.cast); only the typing speed is paced.</sub>
+
 <table>
   <tr>
     <td><img src="docs/screenshots/exact-search.png" alt="Searching the sample project for an error code and a tool name, with a folder filter"></td>
@@ -91,49 +174,12 @@ Scanned PDFs (pictures of pages) and images are not read. See [PRIVACY.md](PRIVA
   </tr>
 </table>
 
-The demo, the cards and the diagram are made by scripts too: the `demo` workflow records a real
+The videos, cards and diagram are made by scripts too: the `demo` workflow records a real
 session (`scripts/record_demo.py`), `scripts/render_demo.py` turns it into `docs/demo.gif` and
-`docs/demo.mp4`, and `scripts/make_visuals.py` renders the pictures from `docs/visuals/`.
+`docs/demo.mp4`, `scripts/make_story.py` makes the short demo video `docs/story.mp4` from the same
+real results, and `scripts/make_visuals.py` renders the pictures (sources in `docs/visuals/`).
 Each screenshot shows real hermes-scout output on the synthetic project in `benchmarks/corpus`, or
 the measured benchmark numbers, made by [`scripts/make_screenshots.py`](scripts/make_screenshots.py).
-
-## Contents
-
-- [What's new in 0.4](#whats-new-in-04)
-- [What you can ask](#what-you-can-ask)
-- [What this is, and what it is not](#what-this-is-and-what-it-is-not)
-- [Screenshots](#screenshots)
-- [Why](#why)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [Command line](#command-line)
-- [Choosing a search mode](#choosing-a-search-mode)
-- [In Hermes: the /scout command](#in-hermes-the-scout-command)
-- [Example](#example)
-- [How it works](#how-it-works)
-- [Benchmark](#benchmark)
-- [Supported embedding servers](#supported-embedding-servers)
-- [Settings](#settings)
-- [Troubleshooting](#troubleshooting)
-- [Disclosure](#disclosure)
-- [Roadmap](#roadmap)
-- [Development](#development)
-- [Contributing](#contributing)
-- [Star History](#star-history)
-- [License](#license)
-
-## Why
-
-Keyword search only finds the words you remember. Notes say "back off and retry", code says
-`except HTTPError as err: if err.code == 429`, and docs say "throttling". You remember none of
-those phrasings. Semantic search compares *meaning*: the query and every passage are turned into
-embedding vectors, and the passages pointing in the most similar direction come back first.
-
-![Keyword search: the question shares no words with docs/backups.md, so it is not found](docs/problem.png)
-
-![hermes-scout: the same question puts docs/backups.md first, and the code name E4021 still works](docs/solution.png)
-
-Both cards show real output on the benchmark project; the semantic result is from the recorded demo.
 
 ## Features
 
@@ -292,7 +338,7 @@ second search reused the index instead of embedding the folder again.
 
 ## How it works
 
-![How hermes-scout works: read, index, rank](docs/architecture.png)
+The [architecture picture](#architecture) above shows the three steps; here is each one in detail.
 
 1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
    Neighbouring chunks share up to two lines, so a passage that straddles a boundary is still found
@@ -415,6 +461,29 @@ The short version is below; [PRIVACY.md](PRIVACY.md) answers the common question
 
 Ideas and bug reports are welcome in [Issues](https://github.com/Shizoqua/hermes-scout/issues).
 
+## Repository layout
+
+```text
+hermes-scout/
+├── hermes_scout/              the plugin, also installed as the hermes-scout command
+│   ├── plugin.yaml            manifest read by Hermes
+│   ├── __init__.py            Hermes wiring: tools, /scout, settings, file-safety checks
+│   ├── engine.py              chunking, file walking, the SQLite index and ranking
+│   ├── documents.py           PDF and Word text, standard library only
+│   ├── embeddings.py          OpenAI-compatible embeddings client
+│   ├── patterns.py            .gitignore rules and search filters
+│   ├── checks.py              the doctor checks
+│   ├── cli.py                 the hermes-scout command
+│   ├── schemas.py             tool definitions shown to the agent
+│   └── skills/scout/SKILL.md  the built-in skill
+├── tests/                     unit tests, no network needed
+├── benchmarks/                synthetic project and 30 questions with known answers
+├── fuzz/                      Atheris fuzzing for the PDF and Word readers
+├── scripts/                   benchmark, screenshots, pictures and demo videos
+├── docs/                      documentation site (MkDocs Material), pictures and videos
+└── .github/                   CI workflows and hash-locked CI tool requirements
+```
+
 ## Development
 
 The search engine (`hermes_scout/engine.py`) and the HTTP client (`hermes_scout/embeddings.py`) use
@@ -427,16 +496,6 @@ python -m pytest --cov=hermes_scout     # 111 tests, no network
 ruff check . && ruff format --check .
 mypy                                    # strict type check
 ```
-
-| Path | Contents |
-|---|---|
-| `hermes_scout/__init__.py` | Hermes wiring: tool registration, settings, file-safety checks, storage |
-| `hermes_scout/plugin.yaml` | Plugin manifest read by Hermes |
-| `hermes_scout/engine.py` | Chunking, file walking, the SQLite index and ranking |
-| `hermes_scout/patterns.py` | `.gitignore` rules and search filters |
-| `hermes_scout/embeddings.py` | OpenAI-compatible embeddings client |
-| `hermes_scout/cli.py` | The `hermes-scout` command |
-| `docs/` | The documentation site (MkDocs Material) |
 
 Before a release, check the plugin the way the Hermes catalog does:
 
