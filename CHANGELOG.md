@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   `docs/demo.cast`), replacing the illustration; problem and solution cards and an architecture
   picture from real output; and a landing page for the docs site.
 - One look for every picture in the README: black background, grey rounded panels and gradient
-  icon tiles. The architecture picture shows the flow from your folder to a cited result.
+  icon tiles. The architecture picture shows how your folder becomes a searchable index.
   Screenshots have bigger text and tighter framing.
 - A "What's inside" table and a "Repository layout" section in the README; the architecture picture
   is near the top.

@@ -90,9 +90,12 @@ Both cards show real output on the benchmark project; the semantic result is fro
 
 ## Architecture
 
-![How hermes-scout works: read the folder, index chunks as meaning vectors and keywords, rank each query the right way](docs/architecture.png)
+hermes-scout reads the folder you name, splits its files into chunks of whole lines and turns each
+chunk into a meaning vector with your embeddings server. The vectors and a keyword index are saved
+in one SQLite file on your machine. For every question, `scout_search` and `scout_similar` rank that
+index and return the file, the lines and a score. Details in [How it works](#how-it-works).
 
-Details in [How it works](#how-it-works).
+![hermes-scout architecture: your folder is read, split and embedded by the index pipeline, saved to a SQLite index, and ranked by scout_search and scout_similar](docs/architecture.png)
 
 ## What's inside
 
