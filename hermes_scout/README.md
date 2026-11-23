@@ -66,6 +66,14 @@ Edit them in the Desktop app (**Settings, Plugins, hermes-scout**) or with
 
 Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compatible APIs.
 
+## What you can ask
+
+- *"Where do we handle rate limits in ~/project?"*
+- *"Which of my notes covers the backup plan?"*
+- *"What does error E4021 mean? Search the billing code."*
+- *"Which PDFs in ~/reports mention the restore drill, and on which page?"*
+- *"What else in ~/notes is like notes/ideas.md?"*
+
 ## Commands
 
 - `/scout doctor`: check the embeddings server, the model and keyword search, with fixes.

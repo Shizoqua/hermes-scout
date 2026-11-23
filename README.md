@@ -44,8 +44,61 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 
 ![Demo: asking Hermes where rate limits are handled, and the ranked passages scout_search returns](docs/demo.gif)
 
+<sub>An illustration of a session. For measured results, see the [benchmark](#benchmark).</sub>
+
+## What's new in 0.4
+
+- **PDF and Word files** are searched too, with page numbers in the results.
+- **Smarter default ranking**, measured: the right file first for 28 of 30 benchmark questions and
+  in the top five for all of them.
+- **`/scout` in Hermes** and **`hermes-scout doctor`**: check your setup and get the fix in plain words.
+- **A built-in skill** that teaches the agent when to search by meaning and how to cite results.
+- **A public benchmark** that reruns on every change to the ranking code.
+
+Full list in the [changelog](CHANGELOG.md).
+
+## What you can ask
+
+Inside Hermes, ask in your own words; the agent calls `scout_search` or `scout_similar`:
+
+- *"Where do we handle rate limits in ~/project?"*
+- *"Which of my notes covers the backup plan?"*
+- *"Find the meeting notes where we decided to switch databases."*
+- *"What does error E4021 mean? Search the billing code."*
+- *"Which PDFs in ~/reports mention the restore drill, and on which page?"*
+- *"What else in ~/notes is like notes/ideas.md?"*
+
+## What this is, and what it is not
+
+**It is** a private search engine for one folder at a time: notes, docs, code, PDFs and Word files
+on your own machine, ranked by meaning with exact names and codes found first.
+
+**It is not** a web search, a chat memory or a document store. It never edits or uploads your files;
+only text chunks go to the embeddings server you choose, which by default runs on your machine.
+Scanned PDFs (pictures of pages) and images are not read. See [PRIVACY.md](PRIVACY.md).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/exact-search.png" alt="Searching the sample project for an error code and a tool name, with a folder filter"></td>
+    <td><img src="docs/screenshots/doctor.png" alt="hermes-scout doctor explaining how to start the embeddings server"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/scout-command.png" alt="The /scout command inside Hermes"></td>
+    <td><img src="docs/screenshots/benchmark.png" alt="Benchmark results: 93% of questions answered with the right file first"></td>
+  </tr>
+</table>
+
+Each screenshot shows real hermes-scout output on the synthetic project in `benchmarks/corpus`, or
+the measured benchmark numbers, made by [`scripts/make_screenshots.py`](scripts/make_screenshots.py).
+
 ## Contents
 
+- [What's new in 0.4](#whats-new-in-04)
+- [What you can ask](#what-you-can-ask)
+- [What this is, and what it is not](#what-this-is-and-what-it-is-not)
+- [Screenshots](#screenshots)
 - [Why](#why)
 - [Features](#features)
 - [Quick start](#quick-start)
@@ -343,6 +396,8 @@ is excluded by `.gitignore`. Hidden files, symlinks and binary files are not ind
 a search filter would match their names.
 
 ## Disclosure
+
+The short version is below; [PRIVACY.md](PRIVACY.md) answers the common questions in full.
 
 - **Network:** file contents (chunks) and search queries are sent to the embeddings endpoint you
   configure. The default is a server on your own machine. If you point `base_url` at a hosted API,
