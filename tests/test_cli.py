@@ -122,10 +122,10 @@ def test_glob_and_no_gitignore_flags(server, notes, tmp_path, capsys):
     assert [r["path"] for r in json.loads(out)["results"]] == ["pasta.md"]
 
 
-def test_search_mode_flag(server, notes, tmp_path, capsys):
+def test_search_ranking_flag(server, notes, tmp_path, capsys):
     index = str(tmp_path / "index.db")
     code, out, _ = _run(
-        capsys, "search", "pasta", str(notes), "--mode", "keyword", "--base-url", server["url"], "--index", index
+        capsys, "search", "pasta", str(notes), "--ranking", "keyword", "--base-url", server["url"], "--index", index
     )
     assert code == 0 and "pasta.md" in out and "retries.md" not in out and "  -  " in out
 
@@ -157,3 +157,12 @@ def test_similar_command_errors(server, notes, tmp_path, capsys, argv, message):
     common = ("--in", str(notes), "--base-url", server["url"], "--index", str(tmp_path / "index.db"))
     code, _, err = _run(capsys, *argv, *common)
     assert code == 2 and message in err
+
+
+def test_without_fts5_the_command_line_notes_the_fallback(server, notes, tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr(cli.engine, "has_keyword_index", lambda conn: False)
+    common = ("--base-url", server["url"], "--index", str(tmp_path / "index.db"))
+    code, out, err = _run(capsys, "search", "pasta", str(notes), *common, "--json")
+    assert code == 0 and "note: Keyword search is not available" in err
+    payload = json.loads(out)
+    assert payload["ranking"] == "semantic" and payload["note"] == cli.engine.NO_KEYWORD_NOTE

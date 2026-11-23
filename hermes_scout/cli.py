@@ -64,8 +64,8 @@ def _parser() -> argparse.ArgumentParser:
         help="only search matching files, e.g. '*.md', 'docs/' or 'src/**/*.py' (repeatable)",
     )
     search.add_argument(
-        "--mode",
-        choices=engine.SEARCH_MODES,
+        "--ranking",
+        choices=engine.RANKINGS,
         default="hybrid",
         help="hybrid: meaning and exact words together (default); semantic: meaning only; keyword: words only",
     )
@@ -168,7 +168,10 @@ def main(argv: list[str] | None = None) -> int:
                 "source": {"file": args.file, "lines": args.lines} if args.file else {"text": args.text}
             }
         else:
-            vector = embed([args.query])[0] if args.mode != "keyword" else None
+            ranking, note = engine.effective_ranking(conn, args.ranking)
+            if note:
+                print(f"note: {note}", file=sys.stderr)
+            vector = embed([args.query])[0] if ranking != "keyword" else None
             results = engine.search(
                 conn,
                 root,
@@ -177,9 +180,11 @@ def main(argv: list[str] | None = None) -> int:
                 max(1, args.top_k),
                 patterns.PathFilter(args.glob),
                 query=args.query,
-                mode=args.mode,
+                ranking=ranking,
             )
-            head = {"query": args.query, "mode": args.mode}
+            head = {"query": args.query, "ranking": ranking}
+            if note:
+                head["note"] = note
     except embeddings.EmbeddingError as err:
         print(f"error: {err}", file=sys.stderr)
         return 1

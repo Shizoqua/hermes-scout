@@ -30,6 +30,7 @@ DEFAULTS: dict[str, Any] = {
     "max_files": 2000,
     "max_file_kb": 1000,
     "respect_gitignore": True,
+    "ranking": "hybrid",
 }
 # One indexing pass at a time: two concurrent first searches of a big folder would embed it twice.
 _INDEX_LOCK = threading.Lock()
@@ -127,20 +128,28 @@ def _search(ctx: Any, args: dict[str, Any]) -> dict[str, Any]:
     query = str(args.get("query") or "").strip()
     if not query:
         return {"error": "query is required"}
-    mode = str(args.get("mode") or "hybrid").strip().lower()
-    if mode not in engine.SEARCH_MODES:
-        return {"error": f"mode must be one of {', '.join(engine.SEARCH_MODES)}"}
+    if args.get("ranking"):
+        ranking = str(args["ranking"]).strip().lower()
+        if ranking not in engine.RANKINGS:
+            return {"error": f"ranking must be one of {', '.join(engine.RANKINGS)}"}
+    else:  # the setting; an unknown value there falls back to the default instead of failing every search
+        ranking = str(_setting(ctx, "ranking")).strip().lower()
+        if ranking not in engine.RANKINGS:
+            ranking = DEFAULTS["ranking"]
     top_k = _top_k(ctx, args)
     prepared = _prepare(ctx, args)
     if isinstance(prepared, dict):
         return prepared
     root, model, embed, path_filter, conn, stats = prepared
     try:
-        vector = embed([query])[0] if mode != "keyword" else None
-        results = engine.search(conn, root, model, vector, top_k, path_filter, query=query, mode=mode)
+        ranking, note = engine.effective_ranking(conn, ranking)
+        vector = embed([query])[0] if ranking != "keyword" else None
+        results = engine.search(conn, root, model, vector, top_k, path_filter, query=query, ranking=ranking)
     finally:
         conn.close()
-    out = {"query": query, "mode": mode, "root": str(root), "model": model, "results": results, "index": stats}
+    out = {"query": query, "ranking": ranking, "root": str(root), "model": model, "results": results, "index": stats}
+    if note:
+        out["note"] = note
     if path_filter:
         out["glob"] = path_filter.globs
     return out

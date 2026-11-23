@@ -98,7 +98,10 @@ CREATE INDEX IF NOT EXISTS chunks_by_file ON chunks (root, model, path);
 # Python's sqlite3 ships with FTS5 on every mainstream platform; without it, search falls back to
 # meaning alone.
 _FTS_TABLE = "chunks_fts"
-SEARCH_MODES = ("hybrid", "semantic", "keyword")
+RANKINGS = ("hybrid", "semantic", "keyword")
+NO_KEYWORD_NOTE = (
+    "Keyword search is not available in this Python's SQLite (no FTS5), so results are ranked by meaning only."
+)
 _RRF_K = 60  # reciprocal rank fusion constant; 60 is the value from the original paper
 _KEYWORD_CANDIDATES = 200
 _WORD = re.compile(r"\w+", re.UNICODE)
@@ -380,6 +383,16 @@ def _result(row: Row, score: float | None) -> dict[str, Any]:
     return {"path": path, "lines": f"{start}-{end}", "score": None if score is None else round(score, 4), "text": text}
 
 
+def effective_ranking(conn: sqlite3.Connection, ranking: str) -> tuple[str, str | None]:
+    """The ranking a search can actually use, and a note for the user when it differs: without a
+    keyword index (no FTS5 in this SQLite build), every ranking falls back to ``semantic``."""
+    if ranking not in RANKINGS:
+        raise ValueError(f"ranking must be one of {', '.join(RANKINGS)}")
+    if ranking != "semantic" and not has_keyword_index(conn):
+        return "semantic", NO_KEYWORD_NOTE
+    return ranking, None
+
+
 def search(
     conn: sqlite3.Connection,
     root: Path,
@@ -389,7 +402,7 @@ def search(
     path_filter: patterns.PathFilter | None = None,
     *,
     query: str = "",
-    mode: str = "hybrid",
+    ranking: str = "hybrid",
 ) -> list[dict[str, Any]]:
     """The ``top_k`` best chunks for a query, best first, limited to files ``path_filter`` matches.
 
@@ -398,25 +411,32 @@ def search(
     rank fusion, so a chunk that is close in meaning *and* shares exact words (a name, an error code)
     comes first. ``score`` is always the cosine similarity when there is a query vector.
     """
-    if mode not in SEARCH_MODES:
-        raise ValueError(f"mode must be one of {', '.join(SEARCH_MODES)}")
+    if ranking not in RANKINGS:
+        raise ValueError(f"ranking must be one of {', '.join(RANKINGS)}")
     if top_k < 1:
         return []
-    vector = _vector_scores(conn, root, model, query_vector, path_filter) if query_vector and mode != "keyword" else []
+    vector = (
+        _vector_scores(conn, root, model, query_vector, path_filter) if query_vector and ranking != "keyword" else []
+    )
     cosine = {row[0]: score for score, row in vector}
-    if mode == "semantic" or (mode == "hybrid" and not query.strip()):
+    if ranking == "semantic" or (ranking == "hybrid" and not query.strip()):
         return [_result(row, score) for score, row in vector[:top_k]]
     keyword = _keyword_ranking(conn, root, model, query, path_filter)
-    if mode == "keyword":
+    if ranking == "keyword":
         return [_result(row, cosine.get(row[0])) for row in keyword[:top_k]]
-    fused: dict[int, float] = {}
-    rows: dict[int, Row] = {}
-    for ranking in ([row for _, row in vector], keyword):
-        for rank, row in enumerate(ranking):
-            fused[row[0]] = fused.get(row[0], 0.0) + 1.0 / (_RRF_K + rank + 1)
-            rows[row[0]] = row
-    best = sorted(fused, key=lambda rowid: fused[rowid], reverse=True)[:top_k]
+    rows = {row[0]: row for row in keyword} | {row[0]: row for _, row in vector}
+    best = rrf_merge([[row[0] for _, row in vector], [row[0] for row in keyword]])[:top_k]
     return [_result(rows[rowid], cosine.get(rowid)) for rowid in best]
+
+
+def rrf_merge(rankings: list[list[int]], k: int = _RRF_K) -> list[int]:
+    """Reciprocal rank fusion: each id scores ``sum(1 / (k + rank))`` over the rankings it appears in
+    (rank counted from 1), best first. Ties keep the order in which ids were first seen."""
+    fused: dict[int, float] = {}
+    for ranked in rankings:
+        for rank, item in enumerate(ranked, start=1):
+            fused[item] = fused.get(item, 0.0) + 1.0 / (k + rank)
+    return sorted(fused, key=lambda item: fused[item], reverse=True)
 
 
 def file_vector(

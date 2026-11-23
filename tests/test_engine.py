@@ -234,7 +234,7 @@ def mixed(tmp_path, conn):
 
 def test_hybrid_puts_an_exact_identifier_match_first(mixed, conn):
     vec = _rule_embed(["ERR_4291"])[0]
-    semantic = engine.search(conn, mixed, "rule", vec, 3, query="ERR_4291", mode="semantic")
+    semantic = engine.search(conn, mixed, "rule", vec, 3, query="ERR_4291", ranking="semantic")
     assert semantic[0]["path"] == "backoff.md"
     hybrid = engine.search(conn, mixed, "rule", vec, 3, query="ERR_4291")
     assert hybrid[0]["path"] == "errors.md"
@@ -242,13 +242,13 @@ def test_hybrid_puts_an_exact_identifier_match_first(mixed, conn):
 
 
 def test_keyword_mode_needs_no_query_vector_and_only_returns_matches(mixed, conn):
-    results = engine.search(conn, mixed, "rule", None, 5, query="pasta water", mode="keyword")
+    results = engine.search(conn, mixed, "rule", None, 5, query="pasta water", ranking="keyword")
     assert [(r["path"], r["score"]) for r in results] == [("pasta.md", None)]
-    assert engine.search(conn, mixed, "rule", None, 5, query="???", mode="keyword") == []
+    assert engine.search(conn, mixed, "rule", None, 5, query="???", ranking="keyword") == []
 
 
 def test_keyword_search_stems_words(mixed, conn):
-    results = engine.search(conn, mixed, "rule", None, 5, query="retry", mode="keyword")
+    results = engine.search(conn, mixed, "rule", None, 5, query="retry", ranking="keyword")
     assert [r["path"] for r in results] == ["backoff.md"]
 
 
@@ -258,8 +258,8 @@ def test_hybrid_without_query_text_is_semantic(mixed, conn):
 
 
 def test_unknown_mode_is_rejected(mixed, conn):
-    with pytest.raises(ValueError, match="mode must be one of"):
-        engine.search(conn, mixed, "rule", None, 1, query="x", mode="fuzzy")
+    with pytest.raises(ValueError, match="ranking must be one of"):
+        engine.search(conn, mixed, "rule", None, 1, query="x", ranking="fuzzy")
 
 
 def test_keyword_query_quotes_every_word():
@@ -271,7 +271,7 @@ def test_keyword_index_follows_changes_and_deletions(mixed, conn):
     (mixed / "pasta.md").write_text("Toast bread instead.", encoding="utf-8")
     (mixed / "errors.md").unlink()
     engine.update_index(conn, mixed, "rule", _rule_embed, sorted(mixed.glob("*.md")))
-    find = lambda q: [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query=q, mode="keyword")]  # noqa: E731
+    find = lambda q: [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query=q, ranking="keyword")]  # noqa: E731
     assert find("pasta") == [] and find("toast") == ["pasta.md"] and find("ERR_4291") == []
     chunks = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
     assert conn.execute("SELECT COUNT(*) FROM chunks_fts").fetchone()[0] == chunks
@@ -283,9 +283,9 @@ def test_an_index_from_before_keyword_search_gets_its_keyword_rows(tmp_path):
     files = [write(tmp_path / "a.md", "quarterly budget review")]
     engine.update_index(old, tmp_path, "toy", toy_embed, files)
     assert not engine.has_keyword_index(old)
-    assert engine.search(old, tmp_path, "toy", None, 5, query="budget", mode="keyword") == []
+    assert engine.search(old, tmp_path, "toy", None, 5, query="budget", ranking="keyword") == []
     engine.ensure_schema(old)
-    results = engine.search(old, tmp_path, "toy", None, 5, query="budget", mode="keyword")
+    results = engine.search(old, tmp_path, "toy", None, 5, query="budget", ranking="keyword")
     assert [r["path"] for r in results] == ["a.md"]
     old.close()
 
@@ -293,7 +293,7 @@ def test_an_index_from_before_keyword_search_gets_its_keyword_rows(tmp_path):
 def test_mismatched_keyword_rows_are_rebuilt(mixed, conn):
     conn.execute("DELETE FROM chunks_fts")
     engine.ensure_schema(conn)
-    assert [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query="pasta", mode="keyword")] == [
+    assert [r["path"] for r in engine.search(conn, mixed, "rule", None, 5, query="pasta", ranking="keyword")] == [
         "pasta.md"
     ]
 
@@ -320,3 +320,65 @@ def test_file_vector_respects_line_ranges_and_missing_files(tmp_path, conn):
     assert engine.file_vector(conn, tmp_path, "toy", "a.md", (1, 5)) is not None
     assert engine.file_vector(conn, tmp_path, "toy", "a.md", (5000, 6000)) is None
     assert engine.file_vector(conn, tmp_path, "toy", "missing.md") is None
+
+
+# ── ranking: RRF, fallbacks and upgrades ────────────────────────────────────
+
+
+def test_bm25_finds_an_exact_identifier_the_vector_search_misses(mixed, conn):
+    vec = _rule_embed(["ERR_4291"])[0]
+    [top_meaning] = engine.search(conn, mixed, "rule", vec, 1, query="ERR_4291", ranking="semantic")
+    [top_words] = engine.search(conn, mixed, "rule", None, 1, query="ERR_4291", ranking="keyword")
+    assert top_meaning["path"] != "errors.md" and top_words["path"] == "errors.md"
+
+
+def test_rrf_merge_orders_by_summed_reciprocal_ranks():
+    # a: 1/61 (first in meaning only); b: 1/62 + 1/62; c: 1/63 + 1/61, so c > b > a.
+    assert engine.rrf_merge([[1, 2, 3], [3, 2]]) == [3, 2, 1]
+    # appearing in both lists beats topping only one: 2 scores 1/3 + 1/3 against 1/2 for 1 and 3
+    assert engine.rrf_merge([[1, 2], [3, 2]], k=1) == [2, 1, 3]
+    # equal scores keep the order in which ids were first seen
+    assert engine.rrf_merge([[1, 2], [2, 1]]) == [1, 2]
+    assert engine.rrf_merge([]) == [] and engine.rrf_merge([[5]]) == [5]
+
+
+class _NoFTS5(sqlite3.Connection):
+    """A connection whose SQLite build lacks FTS5, like some minimal Python builds."""
+
+    def execute(self, sql, *args):
+        if "fts5" in sql.lower():
+            raise sqlite3.OperationalError("no such module: fts5")
+        return super().execute(sql, *args)
+
+
+def test_without_fts5_every_ranking_falls_back_to_meaning_with_a_note(tmp_path):
+    conn = sqlite3.connect(":memory:", factory=_NoFTS5)
+    engine.ensure_schema(conn)  # must not raise
+    assert not engine.has_keyword_index(conn)
+    files = [write(tmp_path / "a.md", "budget review"), write(tmp_path / "b.md", "pasta water")]
+    engine.update_index(conn, tmp_path, "toy", toy_embed, files)
+    for ranking in ("hybrid", "keyword"):
+        assert engine.effective_ranking(conn, ranking) == ("semantic", engine.NO_KEYWORD_NOTE)
+    assert engine.effective_ranking(conn, "semantic") == ("semantic", None)
+    results = engine.search(conn, tmp_path, "toy", toy_embed(["budget"])[0], 1, query="budget")
+    assert results[0]["path"] == "a.md"
+    with pytest.raises(ValueError, match="ranking must be one of"):
+        engine.effective_ranking(conn, "fuzzy")
+    conn.close()
+
+
+def test_an_old_index_upgrades_without_re_embedding(tmp_path):
+    old = sqlite3.connect(":memory:")
+    old.executescript(engine._SCHEMA)  # the 0.2 schema: vectors only
+    files = [write(tmp_path / "a.md", "quarterly budget review"), write(tmp_path / "b.md", "pasta water")]
+    engine.update_index(old, tmp_path, "toy", toy_embed, files)
+
+    def must_not_embed(texts):
+        raise AssertionError(f"re-embedded {texts!r}")
+
+    engine.ensure_schema(old)
+    stats = engine.update_index(old, tmp_path, "toy", must_not_embed, files)
+    assert stats["indexed_files"] == 0 and stats["reused_files"] == 2
+    results = engine.search(old, tmp_path, "toy", None, 5, query="budget", ranking="keyword")
+    assert [r["path"] for r in results] == ["a.md"]
+    old.close()

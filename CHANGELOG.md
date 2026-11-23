@@ -11,9 +11,11 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - Hybrid search: results are ranked by meaning and by exact words together (SQLite full-text
-  search with BM25, merged by reciprocal rank fusion), so names, error codes and identifiers are
-  found as well as paraphrases. The tool's `mode` argument and the command line's `--mode` choose
-  `hybrid` (default), `semantic` or `keyword`. Existing indexes gain their keyword index on first use.
+  search with BM25, merged by reciprocal rank fusion with k=60), so names, error codes and
+  identifiers are found as well as paraphrases. A new `ranking` setting, the tool's `ranking`
+  argument and the command line's `--ranking` choose `hybrid` (default), `semantic` or `keyword`.
+  Existing indexes gain their keyword index on first use, without re-embedding anything. Without
+  FTS5 in Python's SQLite, search falls back to meaning only and adds a one-line note.
 - `scout_similar` tool and `hermes-scout similar` command: the files most related to a file, part of
   a file (`lines`) or a passage (`text`), one result per file.
 - A logo, also used as the docs site's favicon.

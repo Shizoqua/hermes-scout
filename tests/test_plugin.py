@@ -159,13 +159,13 @@ def _notes(plugin):
     return folder
 
 
-def test_search_modes(plugin):
+def test_search_rankings(plugin):
     _notes(plugin)
-    out = _call(plugin, {"query": "pasta", "path": "notes", "mode": "keyword"})
-    assert out["mode"] == "keyword" and [r["path"] for r in out["results"]] == ["pasta.md"]
+    out = _call(plugin, {"query": "pasta", "path": "notes", "ranking": "keyword"})
+    assert out["ranking"] == "keyword" and [r["path"] for r in out["results"]] == ["pasta.md"]
     out = _call(plugin, {"query": "rate limit", "path": "notes"})
-    assert out["mode"] == "hybrid" and out["results"][0]["path"] in {"retries.md", "limits.md"}
-    assert "mode must be one of" in _call(plugin, {"query": "x", "mode": "fuzzy"})["error"]
+    assert out["ranking"] == "hybrid" and out["results"][0]["path"] in {"retries.md", "limits.md"}
+    assert "ranking must be one of" in _call(plugin, {"query": "x", "ranking": "fuzzy"})["error"]
 
 
 def test_similar_from_a_file_skips_the_file_itself(plugin):
@@ -199,3 +199,20 @@ def test_similar_rejects_bad_input(plugin, args, message):
     _notes(plugin)
     out = _call(plugin, {"path": "notes", **args}, tool="scout_similar")
     assert message in out["error"]
+
+
+def test_ranking_setting_is_the_default_and_bad_values_fall_back(plugin):
+    _notes(plugin)
+    out = _call(plugin, {"query": "pasta", "path": "notes"}, {"ranking": "keyword"})
+    assert out["ranking"] == "keyword" and [r["path"] for r in out["results"]] == ["pasta.md"]
+    out = _call(plugin, {"query": "pasta", "path": "notes", "ranking": "semantic"}, {"ranking": "keyword"})
+    assert out["ranking"] == "semantic"
+    assert _call(plugin, {"query": "pasta", "path": "notes"}, {"ranking": "nonsense"})["ranking"] == "hybrid"
+
+
+def test_without_fts5_search_notes_the_fallback(plugin, monkeypatch):
+    _notes(plugin)
+    monkeypatch.setattr(plugin.engine, "has_keyword_index", lambda conn: False)
+    out = _call(plugin, {"query": "pasta", "path": "notes", "ranking": "keyword"})
+    assert out["ranking"] == "semantic" and out["note"] == plugin.engine.NO_KEYWORD_NOTE
+    assert out["results"]

@@ -27,8 +27,10 @@ flowchart LR
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
    (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
    rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
-   shares exact words (a function name, an error code, a ticket ID) comes first. Use `mode` to rank
-   by meaning only (`semantic`) or by words only (`keyword`).
+   shares exact words (a function name, an error code, a ticket ID) comes first. The `ranking`
+   setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
+   words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
+   meaning only and says so in a one-line note.
 5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
    returns the other files whose best passage is closest, one result per file.
 
