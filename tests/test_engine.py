@@ -252,6 +252,13 @@ def test_keyword_search_stems_words(mixed, conn):
     assert [r["path"] for r in results] == ["backoff.md"]
 
 
+def test_hybrid_ranks_a_question_in_words_by_meaning(mixed, conn):
+    vec = _rule_embed(["how does the client back off"])[0]
+    query = "where is the quota exhausted error raised"
+    semantic = engine.search(conn, mixed, "rule", vec, 3, query=query, ranking="semantic")
+    assert engine.search(conn, mixed, "rule", vec, 3, query=query) == semantic
+
+
 def test_hybrid_without_query_text_is_semantic(mixed, conn):
     vec = _rule_embed(["ERR_4291"])[0]
     assert engine.search(conn, mixed, "rule", vec, 1)[0]["path"] == "backoff.md"
@@ -263,8 +270,14 @@ def test_unknown_mode_is_rejected(mixed, conn):
 
 
 def test_keyword_query_quotes_every_word():
-    assert engine.keyword_query('say "hi" AND NOT x') == '"say" OR "hi" OR "and" OR "not"'
+    assert engine.keyword_query('say "hi" OR NEAR x') == '"say" OR "hi" OR "near"'
     assert engine.keyword_query("a ! ?") == ""
+
+
+def test_keyword_query_drops_function_words_unless_nothing_else_is_left():
+    assert engine.keyword_query("how do we handle the rate limits") == '"handle" OR "rate" OR "limits"'
+    assert engine.keyword_query("E4021") == '"e4021"'
+    assert engine.keyword_query("what is this") == '"what" OR "is" OR "this"'
 
 
 def test_keyword_index_follows_changes_and_deletions(mixed, conn):
@@ -330,16 +343,6 @@ def test_bm25_finds_an_exact_identifier_the_vector_search_misses(mixed, conn):
     [top_meaning] = engine.search(conn, mixed, "rule", vec, 1, query="ERR_4291", ranking="semantic")
     [top_words] = engine.search(conn, mixed, "rule", None, 1, query="ERR_4291", ranking="keyword")
     assert top_meaning["path"] != "errors.md" and top_words["path"] == "errors.md"
-
-
-def test_rrf_merge_orders_by_summed_reciprocal_ranks():
-    # a: 1/61 (first in meaning only); b: 1/62 + 1/62; c: 1/63 + 1/61, so c > b > a.
-    assert engine.rrf_merge([[1, 2, 3], [3, 2]]) == [3, 2, 1]
-    # appearing in both lists beats topping only one: 2 scores 1/3 + 1/3 against 1/2 for 1 and 3
-    assert engine.rrf_merge([[1, 2], [3, 2]], k=1) == [2, 1, 3]
-    # equal scores keep the order in which ids were first seen
-    assert engine.rrf_merge([[1, 2], [2, 1]]) == [1, 2]
-    assert engine.rrf_merge([]) == [] and engine.rrf_merge([[5]]) == [5]
 
 
 class _NoFTS5(sqlite3.Connection):
@@ -408,3 +411,43 @@ def test_index_overview_and_clear(tmp_path):
     assert engine.clear_index(conn) == 2
     assert engine.index_overview(conn) == []
     conn.close()
+
+
+def test_fuse_scores_scales_each_list_and_weights_meaning():
+    meaning = [(0.9, 1), (0.5, 2), (0.1, 3)]
+    keyword = [(8.0, 3), (2.0, 2)]
+    # 1: 0.75 * 1.0 = 0.75; 2: 0.75 * 0.5 + 0.25 * 0 = 0.375; 3: 0 + 0.25 * 1.0 = 0.25
+    assert engine.fuse_scores(meaning, keyword, 0.75) == [1, 2, 3]
+    # With meaning weighted lightly the keyword leader wins.
+    assert engine.fuse_scores(meaning, keyword, 0.2)[0] == 3
+
+
+def test_fuse_scores_lets_keywords_break_a_near_tie_in_meaning():
+    meaning = [(0.80, 1), (0.79, 2), (0.10, 3)]
+    keyword = [(5.0, 2)]
+    assert engine.fuse_scores(meaning, keyword, 0.75)[0] == 2
+
+
+def test_fuse_scores_handles_empty_and_flat_lists():
+    assert engine.fuse_scores([], [], 0.75) == []
+    assert engine.fuse_scores([(0.4, 7)], [], 0.75) == [7]
+    assert engine.fuse_scores([(0.3, 1), (0.3, 2)], [(1.0, 2)], 0.75) == [2, 1]
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        ("ERR_4291", True),
+        ("pg_dump", True),
+        ("getUserById", True),
+        ("sync-dead-letter", True),
+        ("E4090 DuplicateInvoice", True),
+        ("HTTP", True),
+        ("tsvector", False),
+        ("how do retries back off", False),
+        ("a b c d", False),
+        ("", False),
+    ],
+)
+def test_looks_like_code(query, expected):
+    assert engine.looks_like_code(query) is expected

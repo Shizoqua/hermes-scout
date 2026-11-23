@@ -12,7 +12,7 @@
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `ranking` | `hybrid` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only |
+| `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 The command line takes the same values as flags; see [Command line](cli.md#options).
 

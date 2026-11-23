@@ -1,0 +1,44 @@
+name: benchmark
+
+# Runs the retrieval benchmark (scripts/benchmark.py) against a real embeddings model in an
+# Ollama container, and puts the results in the job summary and a downloadable artifact.
+on:
+  pull_request:
+    paths: ["benchmarks/**", "scripts/benchmark.py", "hermes_scout/engine.py", ".github/workflows/benchmark.yml"]
+  push:
+    branches: [main]
+    paths: ["benchmarks/**", "scripts/benchmark.py", "hermes_scout/engine.py", ".github/workflows/benchmark.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      ollama:
+        image: ollama/ollama@sha256:0e59999e0e8f9fd4e704bd788a89b7e4cad399367fb1365f8c102ac662288761  # 0.40.15
+        ports:
+          - 11434:11434
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Pull the embedding model
+        run: |
+          for _ in $(seq 1 30); do curl -sf http://localhost:11434/api/version && break; sleep 2; done
+          curl -sf http://localhost:11434/api/pull -d '{"model": "nomic-embed-text", "stream": false}'
+      - name: Run the benchmark
+        run: >-
+          python scripts/benchmark.py
+          --base-url http://localhost:11434/v1 --model nomic-embed-text
+          --wait 120 --json benchmark-results.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
