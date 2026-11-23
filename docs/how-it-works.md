@@ -25,9 +25,11 @@ flowchart LR
    files (by modification time and size) are re-embedded, and deleted files are dropped.
 4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
-   (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
-   rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
-   shares exact words (a function name, an error code, a ticket ID) comes first. The `ranking`
+   (SQLite full-text search with BM25 and word stemming, built alongside the vectors), leaving out
+   filler words such as "how" or "the" that appear everywhere. The two rankings are merged with
+   reciprocal rank fusion, the keyword ranking at half weight, so a passage that is close in meaning
+   *and* shares exact words (a function name, an error code, a ticket ID) comes first, while keywords
+   cannot outvote meaning on loosely worded questions. The `ranking`
    setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
    words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
    meaning only and says so in a one-line note.
