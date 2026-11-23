@@ -111,11 +111,13 @@ embedding vectors, and the passages pointing in the most similar direction come 
    pipx install hermes-scout      # or: pip install hermes-scout
    ```
 
-3. **Check the setup** (optional, if your first search fails):
+3. **Check the setup** before your first search, using the option that matches your install:
 
-   ```bash
-   hermes-scout doctor
-   ```
+   - **Hermes plugin:** run `/scout doctor` inside Hermes.
+   - **Standalone CLI:** run `hermes-scout doctor` in a terminal.
+
+   This checks the embeddings server, model and keyword search. If something fails, see
+   [Troubleshooting](#troubleshooting).
 
 4. **Search.** Ask Hermes:
 
@@ -128,6 +130,15 @@ embedding vectors, and the passages pointing in the most similar direction come 
    ```
 
 The first search of a folder builds its index. Later searches only re-read files that changed.
+
+For example, to search Markdown notes only or look up an exact error code from the terminal:
+
+```bash
+hermes-scout search "meeting notes about backups" ~/notes -g "*.md"
+hermes-scout search "ERR_4291" ~/project --ranking keyword
+```
+
+Use `--ranking keyword` when you already know the exact term or identifier you're looking for.
 
 ## Command line
 
