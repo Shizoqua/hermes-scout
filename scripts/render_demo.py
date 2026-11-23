@@ -21,14 +21,14 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parents[1]
 MONO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 UI = "/usr/share/fonts/opentype/inter/Inter-SemiBold.otf"
-BG, PANEL, BAR = (11, 16, 34), (16, 21, 48), (26, 31, 62)
+BG, PANEL, BAR = (0, 0, 0), (28, 28, 30), (44, 44, 46)
 TEXT, DIM, VIOLET, CYAN, GREEN, RED = (
-    (233, 230, 255),
-    (143, 139, 179),
-    (167, 139, 250),
+    (244, 244, 245),
+    (161, 161, 170),
+    (192, 132, 252),
     (125, 211, 252),
     (74, 222, 128),
-    (248, 113, 113),
+    (251, 113, 133),
 )
 FONT_SIZE, LINE_H, CHAR_W = 15, 22, 9.03
 COLS, ROWS = 104, 26
@@ -70,8 +70,8 @@ def draw(lines: list[str], cursor: bool) -> Image.Image:
     ui = ImageFont.truetype(UI, 14)
     im = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle((8, 8, W - 8, H - 8), 16, fill=PANEL, outline=(45, 50, 90))
-    d.rounded_rectangle((8, 8, W - 8, 46), 16, fill=BAR)
+    d.rounded_rectangle((8, 8, W - 8, H - 8), 20, fill=PANEL)
+    d.rounded_rectangle((8, 8, W - 8, 46), 20, fill=BAR)
     d.rectangle((8, 30, W - 8, 46), fill=BAR)
     for i, dot in enumerate([(255, 95, 87), (254, 188, 46), (40, 200, 64)]):
         d.ellipse((28 + i * 20, 21, 40 + i * 20, 33), fill=dot)
