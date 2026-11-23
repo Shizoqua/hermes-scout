@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Documentation
+
+- Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
+
 ### Added
 
 - `/scout` command in Hermes: `doctor` checks the embeddings server, the model and keyword search
