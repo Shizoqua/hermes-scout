@@ -17,18 +17,22 @@ on 23 November 2026:
 
 | Ranking | hit@1 | hit@5 | MRR | exact hit@1 | mixed hit@1 | paraphrase hit@1 |
 |---|---|---|---|---|---|---|
-| hybrid | 77% | 93% | 0.83 | 100% | 100% | 61% |
+| hybrid | 77% | 97% | 0.84 | 100% | 100% | 61% |
 | semantic | 93% | 100% | 0.97 | 100% | 100% | 89% |
-| keyword | 60% | 87% | 0.70 | 100% | 100% | 33% |
+| keyword | 63% | 83% | 0.72 | 100% | 100% | 39% |
 
 - **hit@1**: the right file is the first result. **hit@5**: it is among the first five files.
   **MRR**: mean reciprocal rank of the right file, where 1.0 is perfect.
 - Searching by meaning finds the right file first for 28 of 30 questions, and in the top five for
   all of them, including questions that share no words with the answer.
-- Keyword search alone misses most paraphrased questions (33%), which is why hermes-scout embeds.
-- On this set, hybrid ranking scores below meaning alone: when a question shares no words with its
-  answer, the keyword ranking adds noise to the merge. Improving how the two rankings are combined
-  is the next step, and this benchmark is how the change will be measured.
+- Keyword search alone misses most paraphrased questions (39%), which is why hermes-scout embeds.
+- On this set, hybrid ranking still scores below meaning alone. Leaving filler words out of the
+  keyword half and counting it at half weight lifted hybrid's top-five rate from 93% to 97%, but not
+  its first-place rate: reciprocal rank fusion leaves only a tiny gap between the first and second
+  meaning results, so a keyword match on the wrong file can still win. A score-based merge is the
+  next step, and this benchmark is how it will be measured.
+
+Two runs of the same code gave identical numbers, so the measurement is stable.
 
 ## Run it yourself
 

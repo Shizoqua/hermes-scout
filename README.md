@@ -246,11 +246,11 @@ on Ollama ([details and method](https://shizoqua.github.io/hermes-scout/benchmar
 | Ranking | Right file first | Right file in top 5 |
 |---|---|---|
 | Meaning (`semantic`) | 93% | 100% |
-| Meaning and keywords (`hybrid`) | 77% | 93% |
-| Keywords only (`keyword`) | 60% | 87% |
+| Meaning and keywords (`hybrid`) | 77% | 97% |
+| Keywords only (`keyword`) | 63% | 83% |
 
 Exact names and error codes are found first in every mode. Questions worded differently from the
-answer are where meaning-based search pays off: 89% first-place hits against 33% for keywords alone.
+answer are where meaning-based search pays off: 89% first-place hits against 39% for keywords alone.
 
 ## Supported embedding servers
 
