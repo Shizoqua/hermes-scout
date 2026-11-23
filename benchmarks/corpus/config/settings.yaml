@@ -1,0 +1,10 @@
+# Runtime settings, overridden per environment
+features:
+  enable_dark_mode: true
+  enable_shared_lists: false
+limits:
+  max_upload_mb: 25
+  max_items_per_list: 5000
+  requests_per_minute: 600
+cache:
+  ttl_seconds: 300

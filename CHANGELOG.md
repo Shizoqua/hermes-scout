@@ -9,6 +9,9 @@ All notable changes to this project are documented here. The format follows
 ### Documentation
 
 - Added a README guide to choosing hybrid, semantic or keyword ranking, with CLI examples.
+- Improved issue forms to distinguish Hermes plugin from standalone CLI reports and request clearer examples.
+- Expanded README troubleshooting tips for missing results, indexing limits and Ollama model checks.
+- Clarified first-run setup checks for both Hermes and CLI users, with example filtered and keyword searches in the README.
 
 ### Added
 
@@ -17,6 +20,17 @@ All notable changes to this project are documented here. The format follows
   an index ahead of time; `clear <folder|all>` forgets an index.
 - `hermes-scout doctor`, `status` and `clear` on the command line, with the same checks.
 - A bundled `scout` skill that tells the agent when to search by meaning and how to cite results.
+- A retrieval benchmark: a synthetic project, 30 questions with known answers and
+  `scripts/benchmark.py`, which reports hit@1, hit@5 and MRR for each ranking mode. A `benchmark`
+  workflow runs it against a real model in a pinned Ollama container.
+
+### Changed
+
+- Hybrid ranking ignores filler words such as "how" and "the" in the keyword half.
+- Hybrid ranking picks by query: questions in words are ranked by meaning, which the new benchmark
+  measured as the most accurate for them; queries made only of code-like names such as `ERR_4291`
+  merge both rankings by score (relative score fusion) with keywords at 75%, so exact names still
+  come first when the embedding model blurs them.
 
 ## [0.3.0] - 2026-11-23
 

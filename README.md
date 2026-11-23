@@ -54,6 +54,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 - [In Hermes: the /scout command](#in-hermes-the-scout-command)
 - [Example](#example)
 - [How it works](#how-it-works)
+- [Benchmark](#benchmark)
 - [Supported embedding servers](#supported-embedding-servers)
 - [Settings](#settings)
 - [Troubleshooting](#troubleshooting)
@@ -112,7 +113,15 @@ embedding vectors, and the passages pointing in the most similar direction come 
    pipx install hermes-scout      # or: pip install hermes-scout
    ```
 
-3. **Search.** Ask Hermes:
+3. **Check the setup** before your first search, using the option that matches your install:
+
+   - **Hermes plugin:** run `/scout doctor` inside Hermes.
+   - **Standalone CLI:** run `hermes-scout doctor` in a terminal.
+
+   This checks the embeddings server, model and keyword search. If something fails, see
+   [Troubleshooting](#troubleshooting).
+
+4. **Search.** Ask Hermes:
 
    > Search my notes in ~/notes for how I set up backups.
 
@@ -123,6 +132,15 @@ embedding vectors, and the passages pointing in the most similar direction come 
    ```
 
 The first search of a folder builds its index. Later searches only re-read files that changed.
+
+For example, to search Markdown notes only or look up an exact error code from the terminal:
+
+```bash
+hermes-scout search "meeting notes about backups" ~/notes -g "*.md"
+hermes-scout search "ERR_4291" ~/project --ranking keyword
+```
+
+Use `--ranking keyword` when you already know the exact term or identifier you're looking for.
 
 ## Command line
 
@@ -156,7 +174,7 @@ about the text you're looking for:
 
 | Mode | When to use it | Example |
 |---|---|---|
-| `hybrid` (default) | General searches where both meaning and exact terms matter | `hermes-scout search "handling API timeouts" ~/project` |
+| `hybrid` (default) | Most searches. Questions are ranked by meaning; code names like `ERR_4291` put exact matches first. | `hermes-scout search "handling API timeouts" ~/project` |
 | `semantic` | You know the idea but aren't sure how the files describe it | `hermes-scout search "recovering from failed requests" ~/project --ranking semantic` |
 | `keyword` | You know an exact name, code or identifier | `hermes-scout search "ERR_4291" ~/project --ranking keyword` |
 
@@ -221,7 +239,7 @@ flowchart LR
     E --> K[Rank by exact words<br/>BM25 keyword index]
     F --> G
     Q --> K
-    G --> M[Merge both rankings<br/>reciprocal rank fusion]
+    G --> M[Merge both rankings<br/>weighted score fusion]
     K --> M
     M --> R[Top passages with<br/>path, lines, score]
 ```
@@ -236,10 +254,12 @@ flowchart LR
    new or changed files (by modification time and size) are re-embedded, and deleted files are dropped.
 4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
-   (SQLite full-text search with BM25 and word stemming, built alongside the vectors). The two
-   rankings are merged with reciprocal rank fusion, so a passage that is close in meaning *and*
-   shares exact words (a function name, an error code, a ticket ID) comes first. The `ranking`
-   setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
+   (SQLite full-text search with BM25 and word stemming, built alongside the vectors), leaving out
+   filler words such as "how" or "the" that appear everywhere. The default `hybrid` ranking picks by
+   query: questions in words are ranked by meaning, which [the benchmark](#benchmark) measured as
+   the most accurate for them; a query made only of code-like names (`ERR_4291`, `pg_dump`,
+   `getUserById`), which embedding models often blur, merges both rankings by score with keywords
+   at 75% and meaning at 25%, so the exact name comes first. The `ranking` setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
    words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
    meaning only and says so in a one-line note.
 5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
@@ -251,6 +271,20 @@ Indexes for different embedding models are kept apart, so switching models never
 `.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...). **Skipped:** hidden files and folders, dependency and
 build folders (`node_modules`, `venv`, `dist`, `build`, ...), anything a `.gitignore` file ignores,
 symlinks, binary files, files over the size limit, and every path Hermes's file tools refuse to read.
+
+## Benchmark
+
+On a synthetic project of 23 files with 30 questions whose answer is known, using `nomic-embed-text`
+on Ollama ([details and method](https://shizoqua.github.io/hermes-scout/benchmark/)):
+
+| Ranking | Right file first | Right file in top 5 |
+|---|---|---|
+| Default (`hybrid`) | 93% | 100% |
+| Meaning only (`semantic`) | 93% | 100% |
+| Keywords only (`keyword`) | 63% | 83% |
+
+Exact names and error codes are found first in every mode. Questions worded differently from the
+answer are where meaning-based search pays off: 89% first-place hits against 39% for keywords alone.
 
 ## Supported embedding servers
 
@@ -280,7 +314,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `ranking` | `hybrid` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only |
+| `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
 
@@ -291,7 +325,17 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
 | No results for files you expected | Check the file's extension, size (`max_file_kb`), that it is not hidden or in a skipped folder, and that no `.gitignore` ignores it. |
+| Search returns fewer files than expected | Check whether the folder contains more than `max_files` (2,000 by default) or whether the file exceeds `max_file_kb` (1,000 KB by default). Narrow the folder or adjust those limits. |
 | The first search is slow | Expected for a large folder: every file is embedded once. Later searches only embed changes. |
+
+If the server check fails, first confirm your embedding service is running. For the default
+Ollama setup, `ollama list` shows your installed models; if `nomic-embed-text` is missing,
+run `ollama pull nomic-embed-text`. Then run `hermes-scout doctor` again (or `/scout doctor`
+inside Hermes).
+
+If a search returns nothing, try the folder without a `-g` filter and check whether the file
+is excluded by `.gitignore`. Hidden files, symlinks and binary files are not indexed even when
+a search filter would match their names.
 
 ## Disclosure
 

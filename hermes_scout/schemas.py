@@ -42,9 +42,9 @@ SCOUT_SEARCH: dict[str, Any] = {
                 "type": "string",
                 "enum": ["hybrid", "semantic", "keyword"],
                 "description": (
-                    "'hybrid' ranks by meaning and exact words together, best for names, error codes and "
-                    "identifiers; 'semantic' by meaning only; 'keyword' by exact words only. Defaults to the "
-                    "plugin's ranking setting (hybrid unless changed)."
+                    "'hybrid' ranks questions by meaning and puts exact matches first when the query is only "
+                    "code-like names (error codes, identifiers); 'semantic' by meaning only; 'keyword' by "
+                    "exact words only. Defaults to the plugin's ranking setting (hybrid unless changed)."
                 ),
             },
             "top_k": _TOP_K,

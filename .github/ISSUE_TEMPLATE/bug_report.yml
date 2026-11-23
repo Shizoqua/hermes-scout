@@ -45,13 +45,25 @@ body:
     attributes:
       label: Embedding model
       placeholder: nomic-embed-text
+  - type: dropdown
+    id: usage
+    attributes:
+      label: How are you using hermes-scout?
+      options:
+        - Hermes Agent plugin
+        - Standalone CLI
+    validations:
+      required: true
   - type: input
     id: hermes-version
     attributes:
-      label: Hermes version
-      description: Output of `hermes --version`
-    validations:
-      required: true
+      label: Hermes version (plugin users)
+      description: Output of `hermes --version`. Leave blank if you use the standalone CLI.
+  - type: input
+    id: scout-version
+    attributes:
+      label: hermes-scout version
+      description: Output of `hermes-scout --version`, if available.
   - type: dropdown
     id: os
     attributes:
@@ -67,4 +79,4 @@ body:
     id: output
     attributes:
       label: Tool output or logs
-      render: json
+      description: Paste relevant output only, and remove tokens, private file contents and paths before posting.
