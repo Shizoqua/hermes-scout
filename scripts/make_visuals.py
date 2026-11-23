@@ -112,7 +112,8 @@ def glyph(icon: str, color: str, size: int) -> str:
 
 ARCH_CSS = """
 body { width: 1600px; padding: 40px 0 44px; background: radial-gradient(1100px 600px at 50% 0%, #0d1424, #05060a 70%); }
-h1 { font-size: 58px; letter-spacing: 2px; color: #38bdf8; text-shadow: 0 0 28px rgba(56,189,248,.35); }
+h1 { font-size: 58px; letter-spacing: 2px; background: linear-gradient(90deg, #e9d5ff, #c084fc 45%, #f472b6);
+     -webkit-background-clip: text; color: transparent; }
 .sub { color: #e4e4e7; font-size: 23px; margin: 6px 0 0; }
 .stage { position: relative; height: 900px; }
 .box { position: absolute; border: 2px solid; border-radius: 20px; padding: 24px; }
@@ -130,7 +131,7 @@ h1 { font-size: 58px; letter-spacing: 2px; color: #38bdf8; text-shadow: 0 0 28px
 .step { position: absolute; left: 24px; width: 250px; border: 2px solid; border-radius: 12px; padding: 12px 16px;
         background: rgba(10,10,20,.6); text-align: center; }
 .step b { font-size: 21px; } .step span { display: block; color: #e4e4e7; font-size: 16.5px; margin-top: 3px; }
-.note { position: absolute; left: 300px; width: 150px; font-size: 15.5px; font-weight: 600; }
+.note { position: absolute; font-size: 16px; font-weight: 600; text-align: center; }
 .mono { font-family: "DejaVu Sans Mono", monospace; }
 .code { position: absolute; right: 22px; top: 22px; bottom: 22px; width: 330px; border: 1.5px solid #3f3f46;
         border-radius: 10px; background: #0a0a0f; padding: 16px 18px; font: 15px/1.6 "DejaVu Sans Mono", monospace;
@@ -163,22 +164,39 @@ def architecture() -> str:
         f'<div class="card">{glyph("search", "#4ade80", 40)}<div><b>Filters when you want them</b>'
         "<span>only *.md, docs/ or src/**/*.py, no re-indexing</span></div></div></div>"
     )
+    # Chunks feed both indexes side by side: (border, text, left, top, width, title, detail, note)
     steps = [
-        ("#3b82f6", "#60a5fa", 112, "Chunks", "whole lines, about 1,200 characters", "Neighbours share two lines"),
+        ("#3b82f6", "#60a5fa", 155, 112, 250, "Chunks", "whole lines, about 1,200 characters", ""),
         (
             "#a855f7",
             "#c084fc",
-            262,
+            24,
+            300,
+            245,
             "Meaning vectors",
             "from your embeddings server",
             "Ollama on your machine by default",
         ),
-        ("#22c55e", "#4ade80", 412, "Keyword index", "SQLite full-text search, BM25", "Exact names like E4021"),
+        (
+            "#22c55e",
+            "#4ade80",
+            291,
+            300,
+            245,
+            "Keyword index",
+            "SQLite full-text search, BM25",
+            "Finds exact names like E4021",
+        ),
     ]
     chain = "".join(
-        f'<div class="step" style="top:{top}px;border-color:{border}"><b style="color:{text}">{title}</b>'
-        f'<span>{detail}</span></div><div class="note" style="top:{top + 18}px;color:{text}">{note}</div>'
-        for border, text, top, title, detail, note in steps
+        f'<div class="step" style="left:{left}px;top:{top}px;width:{width}px;border-color:{border}">'
+        f'<b style="color:{text}">{title}</b><span>{detail}</span></div>'
+        + (
+            f'<div class="note" style="left:{left}px;top:{top + 122}px;width:{width}px;color:{text}">{note}</div>'
+            if note
+            else ""
+        )
+        for border, text, left, top, width, title, detail, note in steps
     )
     pipeline = (
         '<div class="box purple" style="left:890px;top:30px;width:560px;height:520px">'
@@ -206,7 +224,7 @@ def architecture() -> str:
         f'<div style="position:absolute;left:20px;top:690px;width:240px;text-align:center">'
         f'{glyph("search", "#4ade80", 64)}<div class="mono" style="color:#4ade80;font-size:21px;margin-top:8px">'
         'scout_search /<br>scout_similar</div><div style="font-size:17px;color:#e4e4e7;margin-top:8px">'
-        "Rank every question,<br>return file, lines, score</div></div>"
+        "called by Hermes or the<br>command line. The question<br>is embedded the same way</div></div>"
     )
     marker = (
         '<marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">'
@@ -216,25 +234,26 @@ def architecture() -> str:
         '<marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">'
         '<path d="M0 0L10 5L0 10z" fill="#22c55e"/></marker>'
     )
-    links = "".join(
-        f'<line x1="1065" y1="{y1}" x2="1065" y2="{y2}" stroke="{c}" stroke-width="2.5" stroke-dasharray="3 5"/>'
-        f'<circle cx="1065" cy="{y1}" r="5" fill="{c}"/><circle cx="1065" cy="{y2}" r="5" fill="{c}"/>'
-        for y1, y2, c in ((242, 290, "#60a5fa"), (392, 440, "#c084fc"))
+    fork = (
+        '<path d="M1172 248 V 292 H 1038 V 326 M1172 292 H 1305 V 326" stroke="#a1a1aa" stroke-width="2.5" '
+        'stroke-dasharray="3 5" fill="none"/><circle cx="1172" cy="248" r="5" fill="#60a5fa"/>'
+        '<circle cx="1038" cy="328" r="5" fill="#c084fc"/><circle cx="1305" cy="328" r="5" fill="#4ade80"/>'
     )
     wires = (
         f'<svg width="1600" height="900" style="position:absolute;left:0;top:0"><defs>{marker}</defs>'
         '<line x1="714" y1="290" x2="880" y2="290" stroke="#3b82f6" stroke-width="3" stroke-dasharray="10 8" '
         'marker-end="url(#ab)"/>'
-        f"{links}"
-        '<path d="M1065 552 L1065 630" stroke="#a855f7" stroke-width="3" stroke-dasharray="8 7" fill="none" '
+        f"{fork}"
+        '<path d="M1172 552 L1172 630" stroke="#a855f7" stroke-width="3" stroke-dasharray="8 7" fill="none" '
         'marker-end="url(#ap)"/>'
         '<path d="M262 760 C 300 760, 340 760, 382 760" stroke="#22c55e" stroke-width="3" stroke-dasharray="8 7" '
         'fill="none" marker-end="url(#ag)"/>'
         "</svg>"
     )
     labels = (
+        '<div class="lbl" style="left:262px;top:722px;width:126px;color:#4ade80">rank</div>'
         '<div class="lbl" style="left:716px;top:225px;width:162px;color:#60a5fa">read, split<br>&amp; embed</div>'
-        '<div class="lbl" style="left:1085px;top:575px;color:#c084fc">saved to</div>'
+        '<div class="lbl" style="left:1192px;top:575px;color:#c084fc">saved to</div>'
     )
     return page(
         '<h1>HERMES-SCOUT ARCHITECTURE</h1><p class="sub">Your files stay on your machine. hermes-scout keeps a '
