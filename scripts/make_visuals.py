@@ -102,53 +102,165 @@ QUESTION = "how do we keep a copy of the database in case it gets lost"
 MEASURED = "Measured: <b>the right file first for 28 of 30 questions, in the top five for all 30</b>"
 
 
+def glyph(icon: str, color: str, size: int) -> str:
+    """An outline symbol in one colour, for the architecture picture."""
+    return (
+        f'<svg viewBox="0 0 24 24" width="{size}" height="{size}" fill="none" stroke="{color}" stroke-width="1.8" '
+        f'stroke-linecap="round" stroke-linejoin="round">{ICONS[icon]}</svg>'
+    )
+
+
+ARCH_CSS = """
+body { width: 1600px; padding: 40px 0 44px; background: radial-gradient(1100px 600px at 50% 0%, #0d1424, #05060a 70%); }
+h1 { font-size: 58px; letter-spacing: 2px; background: linear-gradient(90deg, #e9d5ff, #c084fc 45%, #f472b6);
+     -webkit-background-clip: text; color: transparent; }
+.sub { color: #e4e4e7; font-size: 23px; margin: 6px 0 0; }
+.stage { position: relative; height: 900px; }
+.box { position: absolute; border: 2px solid; border-radius: 20px; padding: 24px; }
+.box.blue { border-color: #3b82f6; background: rgba(37,99,235,.07); box-shadow: 0 0 30px rgba(59,130,246,.25); }
+.box.purple { border-color: #a855f7; background: rgba(147,51,234,.07); box-shadow: 0 0 30px rgba(168,85,247,.25); }
+.box.amber { border-color: #f59e0b; background: rgba(245,158,11,.07); box-shadow: 0 0 30px rgba(245,158,11,.3); }
+.bh { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.bh b { display: block; font-size: 29px; font-weight: 800; letter-spacing: 1px; }
+.bh span { color: #d4d4d8; font-size: 18px; }
+.blue .bh b { color: #60a5fa; } .purple .bh b { color: #c084fc; } .amber .bh b { color: #fbbf24; }
+.card { display: flex; gap: 16px; align-items: center; border: 1.5px solid #27324a; background: rgba(15,23,42,.8);
+        border-radius: 12px; padding: 16px 18px; margin-top: 14px; }
+.card b { display: block; font-size: 21px; } .card span { color: #cbd5e1; font-size: 17px; display: block; }
+.card .warn { color: #fbbf24; font-weight: 600; }
+.step { position: absolute; left: 24px; width: 250px; border: 2px solid; border-radius: 12px; padding: 12px 16px;
+        background: rgba(10,10,20,.6); text-align: center; }
+.step b { font-size: 21px; } .step span { display: block; color: #e4e4e7; font-size: 16.5px; margin-top: 3px; }
+.note { position: absolute; font-size: 16px; font-weight: 600; text-align: center; }
+.mono { font-family: "DejaVu Sans Mono", monospace; }
+.code { position: absolute; right: 22px; top: 22px; bottom: 22px; width: 330px; border: 1.5px solid #3f3f46;
+        border-radius: 10px; background: #0a0a0f; padding: 16px 18px; font: 15px/1.6 "DejaVu Sans Mono", monospace;
+        color: #e4e4e7;
+        white-space: pre; }
+.code .ok { color: #4ade80; } .code .dim { color: #a1a1aa; } .code .p { color: #c084fc; }
+.feat { display: flex; gap: 12px; align-items: center; font-size: 18.5px; margin: 10px 0; }
+.lbl { position: absolute; font-size: 18px; font-weight: 700; text-align: center; }
+.banner { margin: 0 auto; width: 1040px; border: 2px solid #22c55e; border-radius: 14px;
+          background: rgba(34,197,94,.08);
+          display: flex; gap: 16px; align-items: center; justify-content: center; padding: 16px; font-size: 22px;
+          font-weight: 700; }
+.dot { width: 34px; height: 34px; border-radius: 50%; background: #22c55e; display: flex; align-items: center;
+       justify-content: center; }
+"""
+
+
 def architecture() -> str:
-    stages = [
+    folder = (
+        '<div class="box blue" style="left:150px;top:30px;width:560px;height:520px">'
+        f'<div class="bh">{glyph("folder", "#60a5fa", 52)}<div><b>YOUR FOLDER</b><span>What hermes-scout reads</span>'
+        "</div></div>"
+        f'<div class="card">{glyph("doc", "#60a5fa", 40)}<div><b>Notes, docs and code</b>'
+        "<span>.md .txt .py .ts .go .json .yaml and more</span></div></div>"
+        f'<div class="card">{glyph("doc", "#c084fc", 40)}<div><b>PDF and Word files</b>'
+        "<span>text read on your machine, with page numbers</span></div></div>"
+        f'<div class="card">{glyph("shield", "#fbbf24", 40)}<div><b>Skipped on purpose</b>'
+        '<span>.gitignore matches, hidden and binary files</span><span class="warn">.env and secrets, never read</span>'
+        "</div></div>"
+        f'<div class="card">{glyph("search", "#4ade80", 40)}<div><b>Filters when you want them</b>'
+        "<span>only *.md, docs/ or src/**/*.py, no re-indexing</span></div></div></div>"
+    )
+    # Chunks feed both indexes side by side: (border, text, left, top, width, title, detail, note)
+    steps = [
+        ("#3b82f6", "#60a5fa", 155, 112, 250, "Chunks", "whole lines, about 1,200 characters", ""),
         (
-            "Read",
-            "The folder you name, safely",
-            "folder",
-            "blue",
-            [
-                ("folder", "blue", "Notes, docs and code", ".md .txt .py .ts .go .json .yaml"),
-                ("doc", "red", "PDF and Word files", "text extracted locally, page markers"),
-                ("shield", "green", "Skipped on purpose", ".gitignore, hidden, binary, .env"),
-            ],
+            "#a855f7",
+            "#c084fc",
+            24,
+            300,
+            245,
+            "Meaning vectors",
+            "from your embeddings server",
+            "Ollama on your machine by default",
         ),
         (
-            "Index",
-            "Only changed files are re-read",
-            "db",
-            "purple",
-            [
-                ("layers", "indigo", "Chunks of whole lines", "about 1,200 characters each"),
-                ("spark", "pink", "Meaning vectors", "any /embeddings server, Ollama default"),
-                ("text", "orange", "Keyword index", "SQLite FTS5, BM25"),
-            ],
-        ),
-        (
-            "Rank",
-            "Right method for each query",
-            "search",
-            "green",
-            [
-                ("chat", "purple", "Questions in words", "ranked by meaning"),
-                ("code", "yellow", "Code names", "exact matches first: E4021"),
-                ("check", "green", "Results you can cite", '<span class="mono">0.63 docs/backups.md:1-15</span>'),
-            ],
+            "#22c55e",
+            "#4ade80",
+            291,
+            300,
+            245,
+            "Keyword index",
+            "SQLite full-text search, BM25",
+            "Finds exact names like E4021",
         ),
     ]
-    cols = "".join(
-        f'<div class="fold"><div class="head">{tile(icon, color, 72)}'
-        f"<div><b>{n}. {title}</b><span>{detail}</span></div></div>"
-        + "".join(item(*entry) for entry in entries)
-        + "</div>"
-        for n, (title, detail, icon, color, entries) in enumerate(stages, start=1)
+    chain = "".join(
+        f'<div class="step" style="left:{left}px;top:{top}px;width:{width}px;border-color:{border}">'
+        f'<b style="color:{text}">{title}</b><span>{detail}</span></div>'
+        + (
+            f'<div class="note" style="left:{left}px;top:{top + 122}px;width:{width}px;color:{text}">{note}</div>'
+            if note
+            else ""
+        )
+        for border, text, left, top, width, title, detail, note in steps
+    )
+    pipeline = (
+        '<div class="box purple" style="left:890px;top:30px;width:560px;height:520px">'
+        f'<div class="bh">{glyph("layers", "#c084fc", 52)}<div><b>INDEX PIPELINE</b>'
+        f"<span>Only changed files are read again</span></div></div>{chain}</div>"
+    )
+    code = (
+        '<div class="code"><span class="p">$</span> hermes-scout search\n'
+        '  <span class="dim">"how do we keep a copy of\n'
+        '   the database in case it\n   gets lost"</span>\n<span class="ok">0.63  docs/backups.md:1-15</span>\n'
+        '<span class="dim">      # Backups and restores</span></div>'
+    )
+    store = (
+        '<div class="box amber" style="left:390px;top:640px;width:1060px;height:240px;padding:28px 32px">'
+        f'<div style="display:flex;gap:24px;align-items:center;height:100%">{glyph("db", "#fbbf24", 84)}'
+        '<div style="width:230px"><div style="font-size:30px;font-weight:800;color:#fbbf24;letter-spacing:1px">'
+        'SQLITE INDEX</div><div class="mono" style="font-size:19px;color:#d4d4d8;margin-top:10px">SQLite + FTS5</div>'
+        '<div style="font-size:16px;color:#a1a1aa;margin-top:6px">one file per folder and model</div></div>'
+        '<div style="border-left:1.5px solid #78350f;padding-left:28px;height:150px;display:flex;flex-direction:column;'
+        f'justify-content:center"><div class="feat">{glyph("shield", "#fbbf24", 26)}Stays on your machine</div>'
+        f'<div class="feat">{glyph("search", "#fbbf24", 26)}Meaning and keywords</div>'
+        f'<div class="feat">{glyph("layers", "#fbbf24", 26)}Models never mixed</div></div></div>{code}</div>'
+    )
+    tools = (
+        f'<div style="position:absolute;left:20px;top:690px;width:240px;text-align:center">'
+        f'{glyph("search", "#4ade80", 64)}<div class="mono" style="color:#4ade80;font-size:21px;margin-top:8px">'
+        'scout_search /<br>scout_similar</div><div style="font-size:17px;color:#e4e4e7;margin-top:8px">'
+        "called by Hermes or the<br>command line. The question<br>is embedded the same way</div></div>"
+    )
+    marker = (
+        '<marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">'
+        '<path d="M0 0L10 5L0 10z" fill="#3b82f6"/></marker>'
+        '<marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">'
+        '<path d="M0 0L10 5L0 10z" fill="#a855f7"/></marker>'
+        '<marker id="ag" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">'
+        '<path d="M0 0L10 5L0 10z" fill="#22c55e"/></marker>'
+    )
+    fork = (
+        '<path d="M1172 248 V 292 H 1038 V 326 M1172 292 H 1305 V 326" stroke="#a1a1aa" stroke-width="2.5" '
+        'stroke-dasharray="3 5" fill="none"/><circle cx="1172" cy="248" r="5" fill="#60a5fa"/>'
+        '<circle cx="1038" cy="328" r="5" fill="#c084fc"/><circle cx="1305" cy="328" r="5" fill="#4ade80"/>'
+    )
+    wires = (
+        f'<svg width="1600" height="900" style="position:absolute;left:0;top:0"><defs>{marker}</defs>'
+        '<line x1="714" y1="290" x2="880" y2="290" stroke="#3b82f6" stroke-width="3" stroke-dasharray="10 8" '
+        'marker-end="url(#ab)"/>'
+        f"{fork}"
+        '<path d="M1172 552 L1172 630" stroke="#a855f7" stroke-width="3" stroke-dasharray="8 7" fill="none" '
+        'marker-end="url(#ap)"/>'
+        '<path d="M262 760 C 300 760, 340 760, 382 760" stroke="#22c55e" stroke-width="3" stroke-dasharray="8 7" '
+        'fill="none" marker-end="url(#ag)"/>'
+        "</svg>"
+    )
+    labels = (
+        '<div class="lbl" style="left:262px;top:722px;width:126px;color:#4ade80">rank</div>'
+        '<div class="lbl" style="left:716px;top:225px;width:162px;color:#60a5fa">read, split<br>&amp; embed</div>'
+        '<div class="lbl" style="left:1192px;top:575px;color:#c084fc">saved to</div>'
     )
     return page(
-        '<h1>How hermes-scout works</h1><p class="sub">Your files stay on your machine. Only text chunks go to the '
-        f'embeddings server you choose.</p><div class="row" style="grid-template-columns:repeat(3,1fr)">{cols}</div>'
-        f'<p class="foot">{MEASURED}</p>'
+        '<h1>HERMES-SCOUT ARCHITECTURE</h1><p class="sub">Your files stay on your machine. hermes-scout keeps a '
+        f'searchable index next to them.</p><div class="stage">{wires}{folder}{pipeline}{store}{tools}{labels}</div>'
+        f'<div class="banner"><div class="dot">{glyph("check", "#fff", 22)}</div>'
+        "Questions in words rank by meaning. Code names find exact matches first.</div>",
+        ARCH_CSS,
     )
 
 

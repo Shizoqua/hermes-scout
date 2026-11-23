@@ -11,10 +11,9 @@ All notable changes to this project are documented here. The format follows
 - A real demo recorded with `nomic-embed-text` by a new `demo` workflow (raw recording in
   `docs/demo.cast`), replacing the illustration; problem and solution cards and an architecture
   picture from real output; and a landing page for the docs site.
-- One look for every picture, the README and the docs site: black background, grey rounded panels
-  and gradient icon tiles. Screenshots have bigger text and tighter framing.
-- A 30-second demo video (`docs/story.mp4`, made by `scripts/make_story.py`) that follows one real
-  question from a keyword miss to the right file first, at the top of the README and the docs site.
+- One look for every picture in the README: black background, grey rounded panels and gradient
+  icon tiles. The architecture picture shows how your folder becomes a searchable index.
+  Screenshots have bigger text and tighter framing.
 - A "What's inside" table and a "Repository layout" section in the README; the architecture picture
   is near the top.
 
