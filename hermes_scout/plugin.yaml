@@ -53,4 +53,4 @@ config_schema:
     type: str
     default: hybrid
     label: Ranking
-    description: "hybrid: meaning and exact words together (default). semantic: meaning only. keyword: exact words only"
+    description: "hybrid (default): meaning for questions, exact words first for code names like ERR_4291. semantic: meaning only. keyword: exact words only"

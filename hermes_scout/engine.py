@@ -102,10 +102,12 @@ RANKINGS = ("hybrid", "semantic", "keyword")
 NO_KEYWORD_NOTE = (
     "Keyword search is not available in this Python's SQLite (no FTS5), so results are ranked by meaning only."
 )
-_RRF_K = 60  # reciprocal rank fusion constant; 60 is the value from the original paper
-# Hybrid ranking counts the meaning ranking fully and the keyword ranking at half weight: keywords
-# still lift exact names and codes to the top, but cannot outvote meaning on loosely worded questions.
-_KEYWORD_WEIGHT = 0.5
+# Hybrid ranking routes by query: questions in words are ranked by meaning, which the benchmark
+# measured as the most accurate for them; queries made only of code-like names (ERR_4291, pg_dump,
+# getUserById), which embedding models often blur, merge both rankings by score with keywords at
+# 0.75 and meaning at 0.25 (relative score fusion).
+_CODE_MEANING_WEIGHT = 0.25
+_CODE_TERM = re.compile(r"\d|_|-|[a-z][A-Z]|^[A-Z]{2,}$")
 _KEYWORD_CANDIDATES = 200
 _WORD = re.compile(r"\w+", re.UNICODE)
 
@@ -405,21 +407,32 @@ def keyword_query(text: str) -> str:
     return " OR ".join('"' + w.replace('"', '""') + '"' for w in words[:32])
 
 
+def looks_like_code(query: str) -> bool:
+    """True for a query of one to three names that look like code rather than prose: each has a digit,
+    an underscore or hyphen, an inner capital (camelCase) or is all capitals."""
+    terms = query.split()
+    return 0 < len(terms) <= 3 and all(_CODE_TERM.search(term) for term in terms)
+
+
 def _keyword_ranking(
     conn: sqlite3.Connection, root: Path, model: str, query: str, path_filter: patterns.PathFilter | None
-) -> list[Row]:
-    """Chunks matching ``query``'s words, best BM25 score first."""
+) -> list[tuple[float, Row]]:
+    """Chunks matching ``query``'s words with their BM25 relevance (higher is better), best first."""
     match = keyword_query(query)
     if not match or not has_keyword_index(conn):
         return []
     rows = conn.execute(
-        f"SELECT c.rowid, c.path, c.start_line, c.end_line, c.text FROM {_FTS_TABLE} f"
+        f"SELECT -bm25({_FTS_TABLE}), c.rowid, c.path, c.start_line, c.end_line, c.text FROM {_FTS_TABLE} f"
         " JOIN chunks c ON c.rowid = f.rowid"
         f" WHERE {_FTS_TABLE} MATCH ? AND c.root = ? AND c.model = ?"
         f" ORDER BY bm25({_FTS_TABLE}) LIMIT ?",
         (match, str(root), model, _KEYWORD_CANDIDATES * 5),
     )
-    ranked = [row for row in rows if not (path_filter and not path_filter.matches(row[1]))]
+    ranked: list[tuple[float, Row]] = [
+        (float(score), (rowid, path, start, end, text))
+        for score, rowid, path, start, end, text in rows
+        if not (path_filter and not path_filter.matches(path))
+    ]
     return ranked[:_KEYWORD_CANDIDATES]
 
 
@@ -452,9 +465,10 @@ def search(
     """The ``top_k`` best chunks for a query, best first, limited to files ``path_filter`` matches.
 
     ``semantic`` ranks by cosine similarity to ``query_vector``; ``keyword`` ranks the chunks that
-    contain ``query``'s words by BM25; ``hybrid`` (the default) merges both rankings with reciprocal
-    rank fusion, so a chunk that is close in meaning *and* shares exact words (a name, an error code)
-    comes first. ``score`` is always the cosine similarity when there is a query vector.
+    contain ``query``'s words by BM25; ``hybrid`` (the default) ranks questions by meaning and, for
+    queries made only of code-like names (see ``looks_like_code``), merges both rankings with
+    keywords leading (see ``fuse_scores``), so an exact name or error code comes first even when the
+    embedding model blurs it. ``score`` is always the cosine similarity when there is a query vector.
     """
     if ranking not in RANKINGS:
         raise ValueError(f"ranking must be one of {', '.join(RANKINGS)}")
@@ -464,28 +478,30 @@ def search(
         _vector_scores(conn, root, model, query_vector, path_filter) if query_vector and ranking != "keyword" else []
     )
     cosine = {row[0]: score for score, row in vector}
-    if ranking == "semantic" or (ranking == "hybrid" and not query.strip()):
+    if ranking == "semantic" or (ranking == "hybrid" and not looks_like_code(query)):
         return [_result(row, score) for score, row in vector[:top_k]]
     keyword = _keyword_ranking(conn, root, model, query, path_filter)
     if ranking == "keyword":
-        return [_result(row, cosine.get(row[0])) for row in keyword[:top_k]]
-    rows = {row[0]: row for row in keyword} | {row[0]: row for _, row in vector}
-    best = rrf_merge([[row[0] for _, row in vector], [row[0] for row in keyword]], weights=[1.0, _KEYWORD_WEIGHT])
-    best = best[:top_k]
-    return [_result(rows[rowid], cosine.get(rowid)) for rowid in best]
+        return [_result(row, cosine.get(row[0])) for _, row in keyword[:top_k]]
+    rows = {row[0]: row for _, row in keyword} | {row[0]: row for _, row in vector}
+    best = fuse_scores(
+        [(score, row[0]) for score, row in vector], [(score, row[0]) for score, row in keyword], _CODE_MEANING_WEIGHT
+    )
+    return [_result(rows[rowid], cosine.get(rowid)) for rowid in best[:top_k]]
 
 
-def rrf_merge(rankings: list[list[int]], k: int = _RRF_K, weights: list[float] | None = None) -> list[int]:
-    """Weighted reciprocal rank fusion: each id scores ``sum(weight / (k + rank))`` over the rankings
-    it appears in (rank counted from 1, weight 1 unless given), best first. Ties keep the order in
-    which ids were first seen."""
-    weights = weights or [1.0] * len(rankings)
-    if len(weights) != len(rankings):
-        raise ValueError("one weight per ranking")
+def fuse_scores(meaning: list[tuple[float, int]], keyword: list[tuple[float, int]], meaning_weight: float) -> list[int]:
+    """Relative score fusion: scale each list's scores to 0..1 (best is 1, worst is 0; all 1 when they
+    are equal), weight meaning by ``meaning_weight`` and keywords by the rest, add the two for each id
+    (0 for a list it is missing from) and return the ids best first. Ties keep the meaning order."""
     fused: dict[int, float] = {}
-    for ranked, weight in zip(rankings, weights, strict=True):
-        for rank, item in enumerate(ranked, start=1):
-            fused[item] = fused.get(item, 0.0) + weight / (k + rank)
+    for ranked, weight in ((meaning, meaning_weight), (keyword, 1.0 - meaning_weight)):
+        if not ranked:
+            continue
+        high, low = max(score for score, _ in ranked), min(score for score, _ in ranked)
+        for score, item in ranked:
+            scaled = (score - low) / (high - low) if high > low else 1.0
+            fused[item] = fused.get(item, 0.0) + weight * scaled
     return sorted(fused, key=lambda item: fused[item], reverse=True)
 
 

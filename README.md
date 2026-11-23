@@ -222,7 +222,7 @@ flowchart LR
     E --> K[Rank by exact words<br/>BM25 keyword index]
     F --> G
     Q --> K
-    G --> M[Merge both rankings<br/>reciprocal rank fusion]
+    G --> M[Merge both rankings<br/>weighted score fusion]
     K --> M
     M --> R[Top passages with<br/>path, lines, score]
 ```
@@ -238,11 +238,11 @@ flowchart LR
 4. **Ranking.** The question is embedded the same way and every chunk gets a cosine similarity,
    `score = (q · c) / (‖q‖ ‖c‖)`. The question's words are also looked up in a keyword index
    (SQLite full-text search with BM25 and word stemming, built alongside the vectors), leaving out
-   filler words such as "how" or "the" that appear everywhere. The two rankings are merged with
-   reciprocal rank fusion, the keyword ranking at half weight, so a passage that is close in meaning
-   *and* shares exact words (a function name, an error code, a ticket ID) comes first, while keywords
-   cannot outvote meaning on loosely worded questions. The `ranking`
-   setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
+   filler words such as "how" or "the" that appear everywhere. The default `hybrid` ranking picks by
+   query: questions in words are ranked by meaning, which [the benchmark](#benchmark) measured as
+   the most accurate for them; a query made only of code-like names (`ERR_4291`, `pg_dump`,
+   `getUserById`), which embedding models often blur, merges both rankings by score with keywords
+   at 75% and meaning at 25%, so the exact name comes first. The `ranking` setting (or the tool's `ranking` argument, or `--ranking`) switches to meaning only (`semantic`) or
    words only (`keyword`). If Python's SQLite lacks full-text search (FTS5), search falls back to
    meaning only and says so in a one-line note.
 5. **Find similar.** `scout_similar` averages the vectors of a file (or a line range of it) and
@@ -262,8 +262,8 @@ on Ollama ([details and method](https://shizoqua.github.io/hermes-scout/benchmar
 
 | Ranking | Right file first | Right file in top 5 |
 |---|---|---|
-| Meaning (`semantic`) | 93% | 100% |
-| Meaning and keywords (`hybrid`) | 77% | 97% |
+| Default (`hybrid`) | 93% | 100% |
+| Meaning only (`semantic`) | 93% | 100% |
 | Keywords only (`keyword`) | 63% | 83% |
 
 Exact names and error codes are found first in every mode. Questions worded differently from the
@@ -297,7 +297,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `ranking` | `hybrid` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only |
+| `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
 
