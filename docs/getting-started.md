@@ -16,7 +16,7 @@ Any other OpenAI-compatible server works too; see [Configuration](configuration.
 === "Hermes plugin"
 
     ```bash
-    hermes plugins install hermes-scout
+    hermes plugins install Shizoqua/hermes-scout/hermes_scout
     hermes plugins enable hermes-scout
     ```
 

@@ -9,15 +9,19 @@ pipx install hermes-scout
 ## Search
 
 ```bash
-hermes-scout search "where do we handle rate limits" ~/project
+hermes-scout search "how do we keep a copy of the database in case it gets lost" benchmarks/corpus -k 3
 ```
 
 ```text
-0.82  src/client/backoff.py:40-71
-      def backoff(attempt):
-0.64  docs/api-errors.md:5-19
-      ## 429 Too Many Requests
+0.63  docs/backups.md:1-15
+      # Backups and restores
+0.57  src/storage/cache.py:1-19
+      """Read-through cache in front of the primary store."""
+0.54  notes/meeting-2026-05-12.md:1-15
+      # Platform meeting, 12 May
 ```
+
+Real output with `nomic-embed-text` on Ollama, on the benchmark project in the repository.
 
 Add `--json` for machine-readable output, or `-k 10` for more results.
 
@@ -27,9 +31,10 @@ Limit a search to some files with `-g` (repeatable):
 hermes-scout search "retry policy" ~/project -g "*.md" -g "src/**/*.py"
 ```
 
-By default a search ranks by meaning and by exact words together (`--ranking hybrid`). Use
-`--ranking semantic` for meaning only, or `--ranking keyword` for exact words only, which needs no
-embeddings server for the query. If Python's SQLite lacks full-text search (FTS5), the search falls
+By default (`--ranking hybrid`) a question is ranked by meaning, and a query made only of code-like
+names such as `ERR_4291` puts exact matches first. Use `--ranking semantic` for meaning only, or
+`--ranking keyword` for exact words only, which needs no embeddings server for the query (only for
+files not indexed yet). If Python's SQLite lacks full-text search (FTS5), the search falls
 back to meaning only and prints a one-line note.
 
 ## Find similar files
@@ -78,8 +83,9 @@ hermes-scout clear --all       # forget every index
 | `--max-files` | (none) | `2000` |
 | `--max-file-kb` | (none) | `1000` |
 | `--no-gitignore` | (none) | off: files `.gitignore` ignores are skipped |
-| `--no-documents` | (none) | off: PDF and Word (`.docx`) files are indexed |
+| `--no-documents` | (none) | off: PDF, Word, Excel, PowerPoint and OpenDocument files are indexed |
 | `-g`, `--glob` | (none) | every indexed file |
 | `--ranking` (search) | (none) | `hybrid` |
 
-Exit codes: `0` success, `1` the embeddings server failed, `2` the folder does not exist.
+Exit codes: `0` success, `1` the embeddings server failed (or, for `doctor`, a check failed), `2` a
+usage problem, such as a folder or file that does not exist.

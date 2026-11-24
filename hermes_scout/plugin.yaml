@@ -1,5 +1,5 @@
 name: hermes-scout
-version: 0.4.0
+version: 0.5.0
 description: Search local files by meaning with embeddings from any OpenAI-compatible server (Ollama by default)
 author: Lanre Shittu
 manifest_version: 2
@@ -52,8 +52,8 @@ config_schema:
   read_documents:
     type: bool
     default: true
-    label: Read PDF and Word files
-    description: "Also index the text of PDF and Word (.docx) files up to 20 MB, extracted on this machine"
+    label: Read documents
+    description: "Also index the text of PDF, Word, Excel, PowerPoint and OpenDocument files up to 20 MB, extracted on this machine"
   ranking:
     type: str
     default: hybrid

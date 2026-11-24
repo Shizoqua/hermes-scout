@@ -18,7 +18,7 @@ from . import checks, embeddings, engine, patterns, schemas
 
 logger = logging.getLogger(__name__)
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 PLUGIN_ID = "hermes-scout"
 API_KEY_ENV = "SCOUT_API_KEY"

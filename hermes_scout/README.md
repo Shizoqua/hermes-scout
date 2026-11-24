@@ -5,14 +5,14 @@
 hermes-scout adds two tools to Hermes Agent:
 
 - **`scout_search`**: ask *"where do we handle rate limits?"* and Hermes gets back the most relevant
-  passages from your notes, docs or code, with the file path, line range and a similarity score,
+  passages from your notes, docs, code or documents (PDF, Word, Excel, PowerPoint, OpenDocument), with the file path, line range and a similarity score,
   even when the files never use the words "rate limit". It ranks by meaning and by exact words
   together, so names and error codes are found too.
 - **`scout_similar`**: point at a file (or part of one) or a passage, and get the most related
   files: related notes, overlapping docs, code that does something similar.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
-[Ollama](https://ollama.com) server, so your files never leave your machine.
+[Ollama](https://ollama.com) server, so indexing and searching stay on your machine.
 
 ## Quick start
 
@@ -26,7 +26,7 @@ Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default th
 2. Install and enable the plugin:
 
    ```bash
-   hermes plugins install hermes-scout
+   hermes plugins install Shizoqua/hermes-scout/hermes_scout
    hermes plugins enable hermes-scout
    ```
 
@@ -36,12 +36,14 @@ The first search of a folder builds an index. Later searches only re-embed files
 
 ## How it works
 
-- Text files are split into overlapping chunks of whole lines (1,200 characters by default).
+- Text files, and the text of documents, are split into overlapping chunks of whole lines (1,200
+  characters by default). A passage from a document starts with its `[page N]`, `[slide N]` or
+  `[sheet Name]` line.
 - Chunks are embedded in batches and stored in a SQLite index in the plugin's data folder, keyed
   by folder and embedding model. Only new or changed files are embedded again.
-- Your question is embedded the same way and ranked by cosine similarity, and its words are looked
-  up in a keyword index (SQLite full-text search, BM25). The two rankings are merged, so passages
-  that match in meaning and in exact words come first.
+- Your question is embedded the same way and ranked by cosine similarity. A query made only of
+  code-like names (`ERR_4291`, `pg_dump`) is also looked up in a keyword index (SQLite full-text
+  search, BM25), and the two rankings are merged with keywords leading, so the exact name comes first.
 - Files that `.gitignore` files ignore are skipped, and a search can be narrowed with a filter such
   as `*.md` or `docs/`.
 - Python standard library only: no dependencies to install.
@@ -61,7 +63,7 @@ Edit them in the Desktop app (**Settings, Plugins, hermes-scout**) or with
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `read_documents` | `true` | Also index the text of PDF and Word (`.docx`) files up to 20 MB |
+| `read_documents` | `true` | Also index the text of PDF, Word, Excel, PowerPoint and OpenDocument files up to 20 MB |
 | `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compatible APIs.
@@ -72,6 +74,7 @@ Works with Ollama, LM Studio, llama.cpp's server, vLLM and hosted OpenAI-compati
 - *"Which of my notes covers the backup plan?"*
 - *"What does error E4021 mean? Search the billing code."*
 - *"Which PDFs in ~/reports mention the restore drill, and on which page?"*
+- *"Which slide in ~/decks covers the migration timeline?"*
 - *"What else in ~/notes is like notes/ideas.md?"*
 
 ## Commands
@@ -90,9 +93,11 @@ A bundled `scout` skill tells the agent when to search by meaning and how to cit
   you search.
 - **Files read:** text files under the folder Hermes asks to search. Hidden files, dependency and
   build folders, anything a `.gitignore` ignores, binaries, oversized files and every path Hermes's
-  file tools refuse (such as `.env` files) are skipped. PDF and Word (`.docx`) files are read too,
-  unless `read_documents` is off; their text is extracted locally. The plugin never writes to that
-  folder.
+  file tools refuse (such as `.env` files) are skipped. Documents (PDF, Word, Excel, PowerPoint,
+  OpenDocument) are read too, unless `read_documents` is off; their text is extracted locally. The
+  plugin never writes to that folder.
+- **Results:** the passages a search returns are read by the model Hermes uses, like any file
+  Hermes opens; with a hosted model, that provider sees them.
 - **Files written:** the index database in the plugin's own data folder only. `/scout clear`
   deletes rows from it; nothing else is ever deleted.
 - **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.

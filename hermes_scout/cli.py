@@ -48,7 +48,9 @@ def _parser() -> argparse.ArgumentParser:
     common.add_argument("--max-files", type=int, default=2000, help="files indexed per folder (default: 2000)")
     common.add_argument("--max-file-kb", type=int, default=1000, help="skip larger files (default: 1000)")
     common.add_argument("--no-gitignore", action="store_true", help="also index files that .gitignore files ignore")
-    common.add_argument("--no-documents", action="store_true", help="skip PDF and Word (.docx) files")
+    common.add_argument(
+        "--no-documents", action="store_true", help="skip documents (PDF, Word, Excel, PowerPoint, OpenDocument)"
+    )
 
     parser = argparse.ArgumentParser(
         prog="hermes-scout", description="Search local files by meaning, using embeddings."

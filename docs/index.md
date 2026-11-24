@@ -10,15 +10,16 @@ hide:
 
 # Ask your files anything.
 
-<p class="sc-lead">Private search by meaning for your notes, docs, code, PDFs and Word files.
-For <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> and any terminal.</p>
+<p class="sc-lead">Private search by meaning for your notes, docs, code, PDFs, Office and
+OpenDocument files. For <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> and
+any terminal.</p>
 
 <div class="sc-install" markdown>
 
 === "Hermes plugin"
 
     ```bash
-    hermes plugins install Shizoqua/hermes-scout && hermes plugins enable hermes-scout
+    hermes plugins install Shizoqua/hermes-scout/hermes_scout && hermes plugins enable hermes-scout
     ```
 
 === "pipx"
@@ -81,6 +82,8 @@ For <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> and 
 
 === "Hermes chat"
 
+    An example conversation:
+
     ```text
     You      Which of my notes in ~/notes covers the backup plan?
 
@@ -130,12 +133,12 @@ For <a href="https://github.com/NousResearch/hermes-agent">Hermes Agent</a> and 
   <div class="sc-yes"><h3>Good for</h3><ul>
     <li>Finding a passage when you don't remember its words</li>
     <li>Code names and error codes, found exactly</li>
-    <li>PDF and Word files, with page numbers</li>
-    <li>Private folders: files never leave your machine</li>
+    <li>PDF, Word, Excel, PowerPoint and OpenDocument files, with the page, slide or sheet</li>
+    <li>Private folders: indexing and search run on your machine</li>
   </ul></div>
   <div class="sc-no"><h3>Not for</h3><ul>
     <li>Searching the web</li>
-    <li>Scanned PDFs and images (no text to read)</li>
+    <li>Scanned PDFs, images and older .doc, .xls and .ppt files</li>
     <li>Chat memory or a document store</li>
     <li>Editing or uploading your files</li>
   </ul></div>
