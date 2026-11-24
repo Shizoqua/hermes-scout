@@ -1,0 +1,90 @@
+name: compare-mediarag
+
+# One-off head-to-head: the hermes-scout benchmark (30 questions, 23 files) run on hermes-scout and
+# on mediarag (dyiapanis/mediarag, pinned to the commit the Hermes catalog uses). Runs only on the
+# compare/mediarag branch. Results are printed to the log and the job summary.
+on:
+  push:
+    branches: [compare/mediarag]
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      ollama:
+        image: ollama/ollama@sha256:0e59999e0e8f9fd4e704bd788a89b7e4cad399367fb1365f8c102ac662288761  # 0.40.15
+        ports:
+          - 11434:11434
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: dyiapanis/mediarag
+          ref: 8b2423d52d3ef1e8da9e0418fd7218c8b899f05c
+          path: mediarag
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install mediarag (CPU build of torch)
+        run: |
+          python -m pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet -r mediarag/requirements.txt
+          python mediarag/scripts/fetch_model.py
+      - name: Pull the embedding models
+        run: |
+          for _ in $(seq 1 30); do curl -sf http://localhost:11434/api/version && break; sleep 2; done
+          curl -sf http://localhost:11434/api/pull -d '{"model": "nomic-embed-text", "stream": false}'
+          curl -sf http://localhost:11434/api/pull -d '{"model": "embeddinggemma", "stream": false}' || echo "embeddinggemma not available"
+      - name: hermes-scout with nomic-embed-text
+        run: python scripts/benchmark.py --base-url http://localhost:11434/v1 --model nomic-embed-text --wait 120 --json scout-nomic.json
+      - name: hermes-scout with embeddinggemma
+        continue-on-error: true
+        run: python scripts/benchmark.py --base-url http://localhost:11434/v1 --model embeddinggemma --wait 120 --json scout-gemma.json
+      - name: mediarag as shipped
+        run: python scripts/compare_mediarag.py --mediarag mediarag --mode shipped --json mediarag-shipped.json
+      - name: mediarag with the same text
+        run: python scripts/compare_mediarag.py --mediarag mediarag --mode same-text --json mediarag-same-text.json
+      - name: Summary
+        if: always()
+        run: |
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          print("| Run | hit@1 | hit@5 | MRR | exact | mixed | paraphrase | index s |")
+          print("|---|---|---|---|---|---|---|---|")
+          for name in ["scout-nomic", "scout-gemma"]:
+              p = pathlib.Path(name + ".json")
+              if not p.exists():
+                  continue
+              r = json.loads(p.read_text())
+              for mode in ("hybrid", "semantic", "keyword"):
+                  m = r["modes"][mode]
+                  o, k = m["overall"], m["by_kind"]
+                  print(f"| {name} {mode} | {o['hit@1']:.0%} | {o['hit@5']:.0%} | {o['mrr']:.2f} | "
+                        f"{k['exact']['hit@1']:.0%} | {k['mixed']['hit@1']:.0%} | {k['paraphrase']['hit@1']:.0%} | {r['index_seconds']} |")
+          for name in ["mediarag-shipped", "mediarag-same-text"]:
+              p = pathlib.Path(name + ".json")
+              if not p.exists():
+                  continue
+              r = json.loads(p.read_text())
+              o, k = r["overall"], r["by_kind"]
+              print(f"| {name} | {o['hit@1']:.0%} | {o['hit@5']:.0%} | {o['mrr']:.2f} | "
+                    f"{k['exact']['hit@1']:.0%} | {k['mixed']['hit@1']:.0%} | {k['paraphrase']['hit@1']:.0%} | {r['index_seconds']} |")
+              print(f"\ningest {name}: {json.dumps(r['ingest'])}\n")
+          for name in ["mediarag-same-text", "scout-nomic"]:
+              p = pathlib.Path(name + ".json")
+              if not p.exists():
+                  continue
+              r = json.loads(p.read_text())
+              rows = r["questions"] if isinstance(r.get("questions"), list) else r["modes"]["hybrid"]["questions"]
+              misses = [f"{q['question']} -> {q['answer']} (rank {q['rank']}, top {q['top'][:3]})" for q in rows if q["rank"] != 1]
+              print(f"\n{name} not first ({len(misses)}):\n")
+              for line in misses:
+                  print(f"- {line}")
+          PY
