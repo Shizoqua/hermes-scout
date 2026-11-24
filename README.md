@@ -10,6 +10,7 @@ A [Hermes Agent](https://github.com/NousResearch/hermes-agent) plugin and a stan
 ![hermes-scout: find anything in your files by meaning](docs/banner.png)
 
 [![PyPI](https://img.shields.io/pypi/v/hermes-scout?label=pypi&color=7c5cff&logo=pypi&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pypi.org/project/hermes-scout/)
+[![Downloads](https://img.shields.io/pepy/dt/hermes-scout?label=downloads&color=ec4899&logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://pepy.tech/project/hermes-scout)
 [![tests](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/Shizoqua/hermes-scout/actions/workflows/tests.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3b82f6?logo=python&logoColor=white&labelColor=1e1b2e&style=flat-square)](https://www.python.org/)
 [![Zero dependencies](https://img.shields.io/badge/dependencies-zero-14b8a6?labelColor=1e1b2e&style=flat-square)](#development)
