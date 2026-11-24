@@ -6,7 +6,33 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-24
+
+### Added
+
+- Excel (`.xlsx`), PowerPoint (`.pptx`) and OpenDocument (`.odt`, `.ods`, `.odp`) files are indexed
+  by their text, still with the standard library only: each sheet starts with a `[sheet Name]` line
+  (rows as tab-separated cells) and each slide with a `[slide N]` line. Speaker notes and older
+  `.doc`, `.xls` and `.ppt` files are not read.
+- Every passage from a document now starts with the `[page N]`, `[slide N]` or `[sheet Name]` line it
+  falls under, so a result says where it came from even when that line is far above it. Documents
+  indexed by 0.4 get this when they change, or after `/scout clear`.
+
+### Changed
+
+- The tool description, the built-in skill and the docs say which documents are read, that a
+  result's `lines` count lines of the extracted text for documents, and to cite the page, slide or
+  sheet instead.
+- The install command in the docs is `hermes plugins install Shizoqua/hermes-scout/hermes_scout`,
+  which works today and installs only the plugin folder.
+
 ### Documentation
+
+- The privacy notes say that, inside Hermes, the passages a search returns are read by the model
+  Hermes uses, as any file Hermes opens is.
+- Example output in the README and docs is real output from the recorded demo; a made-up example
+  and the outdated description of hybrid ranking (which said both rankings are always merged) are
+  gone.
 
 - A real demo recorded with `nomic-embed-text` by a new `demo` workflow (raw recording in
   `docs/demo.cast`), replacing the illustration; problem and solution cards and an architecture
@@ -25,7 +51,8 @@ All notable changes to this project are documented here. The format follows
 
 - CI installs its tools (ruff, mypy, pytest, MkDocs, build) from hash-locked requirement files, and
   Dependabot keeps them current.
-- The PDF and Word readers are fuzzed with Atheris every week and on every change to them.
+- The document readers (PDF, Word, Excel, PowerPoint, OpenDocument) are fuzzed with Atheris every
+  week and on every change to them.
 
 ### Fixed
 
@@ -134,7 +161,8 @@ All notable changes to this project are documented here. The format follows
 - Tests for the engine, the HTTP client, the command line and the Hermes wiring (34 tests, over 90%
   coverage), run in CI on Python 3.11 to 3.14 with ruff lint and CodeQL analysis.
 
-[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Shizoqua/hermes-scout/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Shizoqua/hermes-scout/compare/v0.1.1...v0.2.0

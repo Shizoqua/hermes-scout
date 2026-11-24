@@ -203,6 +203,22 @@ def chunk_text(text: str, max_chars: int = 1200, overlap_lines: int = 2) -> list
     return chunks
 
 
+def with_locations(chunks: list[tuple[int, int, str]], text: str) -> list[tuple[int, int, str]]:
+    """Start each document chunk with the ``[page N]``, ``[slide N]`` or ``[sheet Name]`` line it falls
+    under, when the chunk does not already begin with it, so every result says where it came from.
+    Line numbers are unchanged: they still count lines of the extracted text."""
+    markers: list[tuple[int, str]] = [
+        (number, line) for number, line in enumerate(text.splitlines(), start=1) if documents.LOCATION.match(line)
+    ]
+    out = []
+    for start, end, body in chunks:
+        current = next((line for number, line in reversed(markers) if number <= start), None)
+        if current and not documents.LOCATION.match(body.split("\n", 1)[0]):
+            body = f"{current}\n{body}"
+        out.append((start, end, body))
+    return out
+
+
 def _split_line(line: str, max_chars: int) -> list[str]:
     """``line`` cut into pieces of at most ``max_chars``, at the last space before the limit when
     there is one."""
@@ -223,8 +239,8 @@ def _is_text(path: Path) -> bool:
 
 
 def read_file(path: Path) -> str:
-    """The text to index for ``path``: the extracted text of a PDF or .docx file (empty when it cannot
-    be read, so a broken document is skipped rather than failing the search), else the file itself."""
+    """The text to index for ``path``: the extracted text of a document such as a PDF (empty when it
+    cannot be read, so a broken document is skipped rather than failing the search), else the file."""
     if path.suffix.lower() in documents.DOCUMENT_EXTENSIONS:
         try:
             return documents.extract_text(path)
@@ -244,7 +260,8 @@ def iter_files(
     read_documents: bool = True,
 ) -> Iterator[Path]:
     """Text files under ``root`` worth indexing, in a stable order, at most ``max_files``. With
-    ``read_documents``, PDF and Word (.docx) files up to ``documents.MAX_DOCUMENT_BYTES`` are included.
+    ``read_documents``, documents (``documents.DOCUMENT_EXTENSIONS``: PDF, Word, Excel, PowerPoint and
+    OpenDocument) up to ``documents.MAX_DOCUMENT_BYTES`` are included.
 
     Hidden entries (dot-names), dependency/build folders, symlinks, binary and oversized files and
     any path ``is_blocked`` refuses are skipped, and so is anything a ``.gitignore`` file in the
@@ -335,7 +352,10 @@ def update_index(
         if known.get(rel) == (st.st_mtime_ns, st.st_size):
             stats["reused_files"] += 1
             continue
-        chunks = chunk_text(read_file(path), max_chars=max_chars)
+        text = read_file(path)
+        chunks = chunk_text(text, max_chars=max_chars)
+        if path.suffix.lower() in documents.DOCUMENT_EXTENSIONS:
+            chunks = with_locations(chunks, text)
         vectors = _embed_all(embedder, [text for _, _, text in chunks], batch_size) if chunks else []
         with conn:
             _delete_chunks(conn, key, model, rel, fts)

@@ -23,8 +23,9 @@ tags: [search, files, notes, code, retrieval]
 - The exact string is known and short (a function name, an error code) and the folder is small:
   `scout_search` with `ranking: keyword`, or a plain text search, is enough.
 - The user named one specific file: read it directly.
-- The files are images or other binaries: they are not indexed. PDF and Word (.docx) files are,
-  and results from a PDF start with a `[page N]` line that says which page to cite.
+- The files are images or other binaries: they are not indexed. Documents are: PDF, Word (.docx),
+  Excel (.xlsx), PowerPoint (.pptx) and OpenDocument (.odt, .ods, .odp). A result from one starts
+  with a `[page N]`, `[slide N]` or `[sheet Name]` line that says where to cite.
 
 ## How to use it well
 
@@ -32,7 +33,8 @@ tags: [search, files, notes, code, retrieval]
 2. Write the query as a plain question or description, not a keyword list.
 3. Narrow with `glob` when the user names a kind of file: `*.md`, `docs/`, `src/**/*.py`.
 4. Read the returned passages, then open the best file at the given line range before answering.
-   Cite the file path and lines in the answer.
+   Cite the file path and lines in the answer. For documents, the lines count lines of the
+   extracted text, so cite the page, slide or sheet from the result's first line instead.
 5. If a result looks off, try `ranking: keyword` for names and codes, or `ranking: semantic` for
    loosely worded ideas.
 

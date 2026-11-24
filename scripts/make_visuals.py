@@ -156,10 +156,11 @@ def architecture() -> str:
         "</div></div>"
         f'<div class="card">{glyph("doc", "#60a5fa", 40)}<div><b>Notes, docs and code</b>'
         "<span>.md .txt .py .ts .go .json .yaml and more</span></div></div>"
-        f'<div class="card">{glyph("doc", "#c084fc", 40)}<div><b>PDF and Word files</b>'
-        "<span>text read on your machine, with page numbers</span></div></div>"
+        f'<div class="card">{glyph("doc", "#c084fc", 40)}<div><b>Documents</b>'
+        "<span>PDF, Word, Excel, PowerPoint, OpenDocument</span></div></div>"
         f'<div class="card">{glyph("shield", "#fbbf24", 40)}<div><b>Skipped on purpose</b>'
-        '<span>.gitignore matches, hidden and binary files</span><span class="warn">.env and secrets, never read</span>'
+        "<span>.gitignore matches, hidden and binary files</span>"
+        '<span class="warn">.env never read; in Hermes, credential stores too</span>'
         "</div></div>"
         f'<div class="card">{glyph("search", "#4ade80", 40)}<div><b>Filters when you want them</b>'
         "<span>only *.md, docs/ or src/**/*.py, no re-indexing</span></div></div></div>"
@@ -256,8 +257,9 @@ def architecture() -> str:
         '<div class="lbl" style="left:1192px;top:575px;color:#c084fc">saved to</div>'
     )
     return page(
-        '<h1>HERMES-SCOUT ARCHITECTURE</h1><p class="sub">Your files stay on your machine. hermes-scout keeps a '
-        f'searchable index next to them.</p><div class="stage">{wires}{folder}{pipeline}{store}{tools}{labels}</div>'
+        '<h1>HERMES-SCOUT ARCHITECTURE</h1><p class="sub">Indexing and search run on your machine. Only text '
+        "chunks go to the embeddings server you choose.</p>"
+        f'<div class="stage">{wires}{folder}{pipeline}{store}{tools}{labels}</div>'
         f'<div class="banner"><div class="dot">{glyph("check", "#fff", 22)}</div>'
         "Questions in words rank by meaning. Code names find exact matches first.</div>",
         ARCH_CSS,

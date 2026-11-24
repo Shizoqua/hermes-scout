@@ -40,7 +40,7 @@ hermes-scout works two ways:
 - **As a standalone command**, `hermes-scout search "..." ~/notes`, for anyone with Python.
 
 Embeddings come from any OpenAI-compatible `/embeddings` endpoint. By default that is a local
-[Ollama](https://ollama.com) server, so your files never leave your machine and searches cost nothing.
+[Ollama](https://ollama.com) server, so indexing and searching stay on your machine and cost nothing.
 
 ![Demo: hermes-scout doctor, a keyword search that misses the backups doc, the default search that finds it first, an error code search and find similar](docs/demo.gif)
 
@@ -52,7 +52,7 @@ recording is [docs/demo.cast](docs/demo.cast); only the typing speed is paced.</
 - [Why](#why)
 - [Architecture](#architecture)
 - [What's inside](#whats-inside)
-- [What's new in 0.4](#whats-new-in-04)
+- [What's new in 0.5](#whats-new-in-05)
 - [What you can ask](#what-you-can-ask)
 - [What this is, and what it is not](#what-this-is-and-what-it-is-not)
 - [Screenshots](#screenshots)
@@ -104,7 +104,7 @@ index and return the file, the lines and a score. Details in [How it works](#how
     <td width="50%" valign="top">
       <img src="docs/cover-search.png" alt="scout_search: find passages by meaning and by exact names">
       <p><strong><code>scout_search</code></strong></p>
-      <p>Finds the passages that answer a question in a folder of notes, docs, code, PDFs or Word files, best first, with file, line range and score.</p>
+      <p>Finds the passages that answer a question in a folder of notes, docs, code and documents (PDF, Word, Excel, PowerPoint, OpenDocument), best first, with file, line range and score.</p>
       <p><b>Ask Hermes:</b> <i>"Search ~/notes for my backup plan."</i></p>
       <p><b>Ranking:</b> <code>hybrid</code> (default), <code>semantic</code> or <code>keyword</code></p>
     </td>
@@ -133,16 +133,15 @@ index and return the file, the lines and a score. Details in [How it works](#how
   </tr>
 </table>
 
-## What's new in 0.4
+## What's new in 0.5
 
-- **PDF and Word files** are searched too, with page numbers in the results.
-- **Smarter default ranking**, measured: the right file first for 28 of 30 benchmark questions and
-  in the top five for all of them.
-- **`/scout` in Hermes** and **`hermes-scout doctor`**: check your setup and get the fix in plain words.
-- **A built-in skill** that teaches the agent when to search by meaning and how to cite results.
-- **A public benchmark** that reruns on every change to the ranking code.
+- **Excel, PowerPoint and OpenDocument files** are searched too (`.xlsx`, `.pptx`, `.odt`, `.ods`,
+  `.odp`), next to PDF and Word, still with the Python standard library only.
+- **Every result from a document says where it is**: it starts with its `[page N]`, `[slide N]` or
+  `[sheet Name]` line, even when that line is far above the passage.
 
-Full list in the [changelog](CHANGELOG.md).
+Version 0.4 brought PDF and Word files, the measured default ranking, `/scout` and `hermes-scout
+doctor`, the built-in skill and the public benchmark. Full list in the [changelog](CHANGELOG.md).
 
 ## What you can ask
 
@@ -153,16 +152,20 @@ Inside Hermes, ask in your own words; the agent calls `scout_search` or `scout_s
 - *"Find the meeting notes where we decided to switch databases."*
 - *"What does error E4021 mean? Search the billing code."*
 - *"Which PDFs in ~/reports mention the restore drill, and on which page?"*
+- *"Which slide in ~/decks covers the migration timeline?"*
 - *"What else in ~/notes is like notes/ideas.md?"*
 
 ## What this is, and what it is not
 
-**It is** a private search engine for one folder at a time: notes, docs, code, PDFs and Word files
-on your own machine, ranked by meaning with exact names and codes found first.
+**It is** a private search engine for one folder at a time: notes, docs, code and documents (PDF,
+Word, Excel, PowerPoint, OpenDocument) on your own machine, ranked by meaning with exact names and
+codes found first.
 
 **It is not** a web search, a chat memory or a document store. It never edits or uploads your files;
-only text chunks go to the embeddings server you choose, which by default runs on your machine.
-Scanned PDFs (pictures of pages) and images are not read. See [PRIVACY.md](PRIVACY.md).
+only text chunks go to the embeddings server you choose, which by default runs on your machine. In
+Hermes, the passages a search returns are read by the model Hermes uses, like any file Hermes
+opens. Scanned PDFs (pictures of pages), images and older `.doc`, `.xls` and `.ppt` files are not
+read. See [PRIVACY.md](PRIVACY.md).
 
 ## Screenshots
 
@@ -187,19 +190,20 @@ the measured benchmark numbers, made by [`scripts/make_screenshots.py`](scripts/
 
 - **Hybrid search.** Ranks by meaning *and* by exact words together, so it finds "how we handle
   throttling" and `ERR_4291` alike. Switch to meaning-only or keyword-only when you want.
-- **PDF and Word files.** Reads the text of PDFs and `.docx` documents on your own machine, with
-  page markers so results say which page they came from.
+- **Documents.** Reads the text of PDF, Word, Excel, PowerPoint and OpenDocument files on your own
+  machine; each result says which page, slide or sheet it came from.
 - **Find similar.** Point at a file or a passage and get the most related files: related notes,
   overlapping docs, code that does something similar.
 - **Local-first.** Works out of the box with Ollama, LM Studio, llama.cpp or vLLM on your own machine.
 - **Fast repeat searches.** An incremental index re-embeds only files that changed since the last search.
-- **Safe by default.** Skips hidden files, dependency folders, binaries and every path Hermes's own
-  file tools refuse to read, such as `.env` files and credential stores.
+- **Safe by default.** Skips hidden files (such as `.env`), dependency folders and binaries, and in
+  Hermes every path Hermes's own file tools refuse to read, such as credential stores.
 - **Zero dependencies.** Python standard library only: nothing extra to install or audit.
 - **Respects `.gitignore`.** Files your project ignores (build output, logs, generated code) stay
   out of the index, at every folder level, with `!` re-includes, just like git.
 - **Filters.** Narrow a search to `*.md`, `docs/` or `src/**/*.py` without re-indexing.
-- **Precise results.** Every hit names the file, the line range and a cosine similarity score.
+- **Precise results.** Every hit names the file, the line range and a cosine similarity score
+  (keyword-only searches have no score).
 - **Cross-platform.** Tested on Linux, macOS and Windows with Python 3.11 to 3.14.
 - **Two ways to use it:** as a Hermes tool or as a `hermes-scout` command in any terminal.
 - **Configurable** from the Hermes Desktop settings page or `hermes plugins config hermes-scout`.
@@ -216,7 +220,7 @@ the measured benchmark numbers, made by [`scripts/make_screenshots.py`](scripts/
 2. **Install hermes-scout** in Hermes:
 
    ```bash
-   hermes plugins install hermes-scout
+   hermes plugins install Shizoqua/hermes-scout/hermes_scout
    hermes plugins enable hermes-scout
    ```
 
@@ -258,12 +262,16 @@ Use `--ranking keyword` when you already know the exact term or identifier you'r
 ## Command line
 
 ```console
-$ hermes-scout search "how does the client handle rate limiting" ~/project
-0.59  notes/retries.md:1-3
-      Retry policy
-0.18  notes/pasta.md:1-3
-      Dinner
+$ hermes-scout search "how do we keep a copy of the database in case it gets lost" benchmarks/corpus -k 3
+0.63  docs/backups.md:1-15
+      # Backups and restores
+0.57  src/storage/cache.py:1-19
+      """Read-through cache in front of the primary store."""
+0.54  notes/meeting-2026-05-12.md:1-15
+      # Platform meeting, 12 May
 ```
+
+Real output with `nomic-embed-text` on Ollama, from the [recorded demo](docs/demo.cast).
 
 | Command | What it does |
 |---|---|
@@ -302,7 +310,7 @@ to semantic ranking.
 |---|---|
 | `/scout doctor` | Checks the embeddings server, the model and keyword search in one go, with the fix for anything that fails. |
 | `/scout status` | Lists the indexed folders with file and chunk counts. |
-| `/scout index [folder]` | Builds or refreshes a folder's index now, so the first search is instant. |
+| `/scout index [folder]` | Builds or refreshes a folder's index now, so the first search does not wait for it. |
 | `/scout clear <folder>`, `/scout clear all` | Forgets a folder's index, or every index. |
 
 The plugin also ships a `scout` skill that tells the agent when searching by meaning beats a plain
@@ -310,33 +318,36 @@ text search, and how to narrow and cite results.
 
 ## Example
 
-A search across a small project. The model receives this from the tool:
+What the model receives from `scout_search` for the search above. Paths, line ranges, passages and
+index counts are exact; the scores are the recorded ones, shown to two decimals; the passages are
+cut short here.
 
 ```json
 {
-  "query": "how does the client handle rate limiting and retries",
-  "root": "/home/me/project",
+  "query": "how do we keep a copy of the database in case it gets lost",
+  "ranking": "hybrid",
+  "root": "/home/me/hermes-scout/benchmarks/corpus",
   "model": "nomic-embed-text",
   "results": [
     {
-      "path": "notes/retries.md",
-      "lines": "1-3",
-      "score": 0.5948,
-      "text": "Retry policy\n\nWhen the API answers 429 the client waits with exponential backoff and jitter, then retries up to five times."
+      "path": "docs/backups.md",
+      "lines": "1-15",
+      "score": 0.63,
+      "text": "# Backups and restores\n\n## Nightly dumps\n\nA scheduled job runs `pg_dump` at 02:00 UTC for every region ..."
     },
     {
-      "path": "notes/pasta.md",
-      "lines": "1-3",
-      "score": 0.1849,
-      "text": "Dinner\n\nBoil pasta in salted water, add garlic and olive oil."
+      "path": "src/storage/cache.py",
+      "lines": "1-19",
+      "score": 0.57,
+      "text": "\"\"\"Read-through cache in front of the primary store.\"\"\"\n\nTTL_SECONDS = 300 ..."
     }
   ],
-  "index": {"indexed_files": 0, "reused_files": 2, "removed_files": 0, "chunks": 2}
+  "index": {"indexed_files": 0, "reused_files": 23, "removed_files": 0, "chunks": 23}
 }
 ```
 
-The relevant note scores far above the unrelated one, and `"indexed_files": 0` shows that the
-second search reused the index instead of embedding the folder again.
+The answer comes first although the question shares no words with it, and `"indexed_files": 0`
+shows that this search reused the index instead of embedding the folder again.
 
 ## How it works
 
@@ -366,10 +377,12 @@ The [architecture picture](#architecture) above shows the three steps; here is e
 Indexes for different embedding models are kept apart, so switching models never mixes vectors.
 
 **What gets indexed:** common text, documentation, code and config extensions (`.md`, `.txt`, `.py`,
-`.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...), plus the text of PDF and Word (`.docx`) files up to
-20 MB ([details](https://shizoqua.github.io/hermes-scout/how-it-works/#pdf-and-word-files)). **Skipped:** hidden files and folders, dependency and
-build folders (`node_modules`, `venv`, `dist`, `build`, ...), anything a `.gitignore` file ignores,
-symlinks, binary files, files over the size limit, and every path Hermes's file tools refuse to read.
+`.ts`, `.go`, `.rs`, `.json`, `.yaml`, ...), plus the text of documents up to 20 MB: PDF, Word
+(`.docx`), Excel (`.xlsx`), PowerPoint (`.pptx`) and OpenDocument (`.odt`, `.ods`, `.odp`)
+([details](https://shizoqua.github.io/hermes-scout/how-it-works/#documents)). **Skipped:** hidden
+files and folders, dependency and build folders (`node_modules`, `venv`, `dist`, `build`, ...),
+anything a `.gitignore` file ignores, symlinks, binary files, files over the size limit and, in
+Hermes, every path Hermes's file tools refuse to read.
 
 ## Benchmark
 
@@ -413,7 +426,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `max_files` | `2000` | Files indexed per folder |
 | `max_file_kb` | `1000` | Larger files are skipped |
 | `respect_gitignore` | `true` | Skip files and folders that `.gitignore` files in the searched folder ignore |
-| `read_documents` | `true` | Also index the text of PDF and Word (`.docx`) files up to 20 MB |
+| `read_documents` | `true` | Also index the text of PDF, Word, Excel, PowerPoint and OpenDocument files up to 20 MB |
 | `ranking` | `hybrid` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only |
 
 ## Troubleshooting
@@ -424,7 +437,7 @@ In Hermes, edit them in the Desktop app (**Settings → Plugins → hermes-scout
 | `cannot reach the embeddings server at http://localhost:11434/v1` | Start Ollama (`ollama serve`) or point `base_url` at your server. |
 | `answered HTTP 404 ... model not found` | Pull the model (`ollama pull nomic-embed-text`) or set `embedding_model` to one the server has. |
 | `answered HTTP 401` | A hosted endpoint needs `api_key`. |
-| A PDF never shows up in results | It may be scanned (pictures of pages) or encrypted, which have no text to read; anything over 20 MB is skipped too. Check that `read_documents` is on. |
+| A document never shows up in results | A scanned PDF (pictures of pages) or an encrypted file has no text to read, older `.doc`, `.xls` and `.ppt` files are not read, and anything over 20 MB is skipped. Check that `read_documents` is on. |
 | No results for files you expected | Check the file's extension, size (`max_file_kb`), that it is not hidden or in a skipped folder, and that no `.gitignore` ignores it. |
 | Search returns fewer files than expected | Check whether the folder contains more than `max_files` (2,000 by default) or whether the file exceeds `max_file_kb` (1,000 KB by default). Narrow the folder or adjust those limits. |
 | The first search is slow | Expected for a large folder: every file is embedded once. Later searches only embed changes. |
@@ -446,9 +459,12 @@ The short version is below; [PRIVACY.md](PRIVACY.md) answers the common question
   configure. The default is a server on your own machine. If you point `base_url` at a hosted API,
   that service receives the text of the files you search.
 - **Files read:** text files under the folder the model asks to search, minus the skipped paths
-  listed above, and PDF and Word files unless `read_documents` is off. Their text is extracted on
-  your machine with Python's standard library; no file is uploaded anywhere except as text chunks
-  to the embeddings endpoint. The plugin never writes to that folder.
+  listed above, and documents (PDF, Word, Excel, PowerPoint, OpenDocument) unless `read_documents`
+  is off. Their text is extracted on your machine with Python's standard library; no file is
+  uploaded anywhere except as text chunks to the embeddings endpoint. The plugin never writes to
+  that folder.
+- **Results:** the passages a search returns go to Hermes, which reads them with the model you
+  chose for Hermes, as it would any file it opens. With a hosted model, that provider sees them.
 - **Files written:** the index database in the plugin's own data folder only. `/scout clear`
   deletes rows from it; nothing else is ever deleted.
 - **Health check:** `/scout doctor` sends one fixed test sentence to the embeddings endpoint.
@@ -458,8 +474,9 @@ The short version is below; [PRIVACY.md](PRIVACY.md) answers the common question
 
 ## Roadmap
 
+- A published speed test on a large synthetic folder, next to the accuracy benchmark.
+- An optional setting that puts the best matches in front of the model before it answers.
 - Result diversity (MMR) so near-duplicate chunks do not crowd the top results.
-- An index statistics command and a way to clear old indexes.
 
 Ideas and bug reports are welcome in [Issues](https://github.com/Shizoqua/hermes-scout/issues).
 
@@ -471,7 +488,7 @@ hermes-scout/
 │   ├── plugin.yaml            manifest read by Hermes
 │   ├── __init__.py            Hermes wiring: tools, /scout, settings, file-safety checks
 │   ├── engine.py              chunking, file walking, the SQLite index and ranking
-│   ├── documents.py           PDF and Word text, standard library only
+│   ├── documents.py           PDF, Office and OpenDocument text, standard library only
 │   ├── embeddings.py          OpenAI-compatible embeddings client
 │   ├── patterns.py            .gitignore rules and search filters
 │   ├── checks.py              the doctor checks
@@ -480,7 +497,7 @@ hermes-scout/
 │   └── skills/scout/SKILL.md  the built-in skill
 ├── tests/                     unit tests, no network needed
 ├── benchmarks/                synthetic project and 30 questions with known answers
-├── fuzz/                      Atheris fuzzing for the PDF and Word readers
+├── fuzz/                      Atheris fuzzing for the document readers
 ├── scripts/                   benchmark, screenshots, pictures and the demo
 ├── docs/                      documentation site (MkDocs Material), pictures and videos
 └── .github/                   CI workflows and hash-locked CI tool requirements
@@ -494,7 +511,7 @@ or network access:
 
 ```bash
 python -m pip install --require-hashes -r .github/requirements/test.txt -r .github/requirements/lint.txt
-python -m pytest --cov=hermes_scout     # 111 tests, no network
+python -m pytest --cov=hermes_scout     # no network needed
 ruff check . && ruff format --check .
 mypy                                    # strict type check
 ```
@@ -506,9 +523,10 @@ hermes plugins validate hermes_scout --install-deps
 hermes plugins doctor hermes_scout --ci
 ```
 
-Every push runs lint, a strict type check, the tests on Linux, macOS and Windows with Python 3.11
-to 3.14 and a 90% coverage floor, CodeQL security analysis, an OpenSSF Scorecard rating and a strict
-docs build. The PDF and Word readers are fuzzed with Atheris every week and on every change to
+Every pull request and every change to `main` runs lint, a strict type check, the tests on Linux,
+macOS and Windows with Python 3.11 to 3.14 with a 90% coverage floor, and CodeQL security analysis.
+Changes to the docs also get a strict docs build. An OpenSSF Scorecard rating runs on every change
+to `main` and weekly. The document readers are fuzzed with Atheris every week and on every change to
 them. CI tools are installed from hash-locked files in `.github/requirements/` (kept current by
 Dependabot). Publishing a GitHub release uploads the package to PyPI.
 

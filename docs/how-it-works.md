@@ -1,23 +1,18 @@
 # How it works
 
+![How hermes-scout works: your folder is read, split and embedded by the index pipeline, saved to a SQLite index, and ranked by scout_search and scout_similar](architecture.png)
+
 ```mermaid
 flowchart LR
-    A[Folder of text files] --> B[Split into overlapping<br/>line-aligned chunks]
-    B --> C{New or changed<br/>since last search?}
-    C -- yes --> D[Embed via<br/>/embeddings endpoint]
-    C -- no --> E[(SQLite index)]
-    D --> E
-    Q[Your question] --> F[Embed the question]
-    E --> G[Rank by meaning<br/>cosine similarity]
-    E --> K[Rank by exact words<br/>BM25 keyword index]
-    F --> G
-    Q --> K
-    G --> M[Merge both rankings<br/>weighted score fusion]
-    K --> M
-    M --> R[Top passages with<br/>path, lines, score]
+    Q[Your query] --> T{Only code-like<br/>names?}
+    T -- no: a question in words --> G[Rank by meaning<br/>cosine similarity]
+    T -- yes: ERR_4291, pg_dump --> M[Merge meaning and<br/>BM25 keyword ranking,<br/>keywords leading]
+    G --> R[Top passages with<br/>path, lines, score]
+    M --> R
 ```
 
-1. **Chunking.** Text files are split into chunks of whole lines (1,200 characters by default).
+1. **Chunking.** Text files, and the text of documents, are split into chunks of whole lines
+   (1,200 characters by default).
    Neighbouring chunks share up to two lines, so a passage that straddles a boundary is still found
    whole. A line longer than the chunk size is split into pieces, so nothing is cut off.
 2. **Embedding.** Chunks are sent in batches of 32 and stored as float32 vectors with precomputed norms.
@@ -45,19 +40,28 @@ Common text, documentation, code and config extensions (`.md`, `.txt`, `.py`, `.
 (`node_modules`, `venv`, `dist`, `build`, ...), symlinks, binary files and files over the size limit.
 Inside Hermes, paths Hermes's file tools refuse to read are skipped as well.
 
-## PDF and Word files
+## Documents
 
-PDF and Word (`.docx`) files up to 20 MB are indexed by their text, extracted on your machine with
-Python's standard library. Each PDF page starts with a `[page N]` line, so a result's passage shows
-which page it came from. Turn this off with the `read_documents` setting or `--no-documents`.
+Documents up to 20 MB are indexed by their text, extracted on your machine with Python's standard
+library. Each page, slide or sheet starts with a `[page N]`, `[slide N]` or `[sheet Name]` line,
+and every result from a document starts with the line it falls under, so it says where it came
+from even when that line is far above the passage. For documents, a result's `lines` count lines
+of the extracted text, not of the file. Turn documents off with the `read_documents` setting or
+`--no-documents`.
 
 What works and what does not:
 
-- Text-based PDFs, the usual kind exported from Word, LibreOffice, Google Docs or LaTeX, including
-  accented and non-Latin text when the PDF maps its fonts to Unicode.
-- Word `.docx` files: body text, tables, footnotes and endnotes. Older `.doc` files are not read.
-- Scanned PDFs (pictures of pages) and encrypted PDFs contain no extractable text and are skipped,
-  as is any file that cannot be read. Nothing is guessed: such files simply do not appear in results.
+- **PDF:** text-based PDFs, the usual kind exported from Word, LibreOffice, Google Docs or LaTeX,
+  including accented and non-Latin text when the PDF maps its fonts to Unicode.
+- **Word (`.docx`):** body text, tables, footnotes and endnotes.
+- **Excel (`.xlsx`):** every sheet in workbook order, one line per row with cells separated by tabs.
+  Cells show their stored value: formulas show their last saved result, and dates appear as the
+  number Excel stores for them.
+- **PowerPoint (`.pptx`):** the text on each slide, in presentation order. Speaker notes are not read.
+- **OpenDocument (`.odt`, `.ods`, `.odp`):** text documents, spreadsheets and presentations from
+  LibreOffice and others, read the same way.
+- **Not read:** older `.doc`, `.xls` and `.ppt` files, scanned PDFs (pictures of pages), images and
+  encrypted files. Nothing is guessed: such files simply do not appear in results.
 
 ## `.gitignore`
 

@@ -1,6 +1,6 @@
 name: fuzz
 
-# Fuzzes the readers that take untrusted bytes (PDF text, Word XML, keyword queries) with Atheris
+# Fuzzes the readers that take untrusted bytes (PDF, Office and OpenDocument XML, keyword queries) with Atheris
 # for a few minutes, on changes to them and once a week. A crash fails the run and uploads the input.
 on:
   pull_request:

@@ -1,43 +1,112 @@
-"""Plain text from PDF and Word (.docx) files, with the standard library only.
+"""Plain text from PDF, Word, Excel, PowerPoint and OpenDocument files, with the standard library only.
 
-Best effort by design: text-based PDFs (the common case for exported documents) and .docx files
-are read; scanned PDFs (pictures of pages), encrypted PDFs and fonts without a text mapping yield
-little or no text and are skipped. Every size is capped, so a hostile file cannot exhaust memory.
+Best effort by design: text-based PDFs (the common case for exported documents), .docx, .xlsx and
+.pptx files and OpenDocument text, spreadsheets and presentations (.odt, .ods, .odp) are read;
+scanned PDFs (pictures of pages), encrypted files and fonts without a text mapping yield little or
+no text and are skipped. Every size is capped, so a hostile file cannot exhaust memory.
+
+Each page, slide or sheet starts with a marker line such as ``[page 3]``, ``[slide 2]`` or
+``[sheet Budget]``, so a search result can say where in the document it came from.
 """
 
 from __future__ import annotations
 
+import posixpath
 import re
 import zipfile
 import zlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from xml.etree import ElementTree
 
-DOCUMENT_EXTENSIONS = frozenset({".pdf", ".docx"})
-MAX_DOCUMENT_BYTES = 20 * 1024 * 1024  # largest PDF or .docx read at all
+DOCUMENT_EXTENSIONS = frozenset({".pdf", ".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp"})
+MAX_DOCUMENT_BYTES = 20 * 1024 * 1024  # largest document read at all
 _MAX_EXPANDED_BYTES = 64 * 1024 * 1024  # total decompressed data allowed per document
 _MAX_TEXT_CHARS = 2_000_000  # extracted text kept per document
+LOCATION = re.compile(r"^\[(?:page|slide|sheet) [^\]\n]+\]$")  # a marker line, as written below
 
 
 class DocumentError(Exception):
-    """The file is not a readable PDF or .docx; the message says why."""
+    """The file is not a readable document; the message says why."""
 
 
 def extract_text(path: Path) -> str:
-    """The text of a PDF or .docx file at ``path``. Raises ``DocumentError`` when it cannot be read."""
+    """The text of the document at ``path``. Raises ``DocumentError`` when it cannot be read."""
     suffix = path.suffix.lower()
     if suffix not in DOCUMENT_EXTENSIONS:
-        raise DocumentError(f"not a PDF or .docx file: {path.name}")
+        raise DocumentError(f"not a supported document type: {path.name}")
     try:
         size = path.stat().st_size
         if size > MAX_DOCUMENT_BYTES:
             raise DocumentError(f"{path.name} is larger than {MAX_DOCUMENT_BYTES // 1_048_576} MB")
-        if suffix == ".docx":
-            return docx_text(path)
-        return pdf_text(path.read_bytes())
+        if suffix == ".pdf":
+            return pdf_text(path.read_bytes())
+        reader = {".docx": docx_text, ".xlsx": xlsx_text, ".pptx": pptx_text}.get(suffix, odf_text)
+        return reader(path)[:_MAX_TEXT_CHARS]
     except OSError as err:
         raise DocumentError(f"cannot read {path.name}: {err}") from err
+
+
+# --- zip-based formats --------------------------------------------------------------------------
+
+
+class _Package:
+    """The parts of a zip-based document, read with one budget for the total decompressed size."""
+
+    def __init__(self, archive: zipfile.ZipFile, name: str, kind: str) -> None:
+        self.archive, self.name, self.kind = archive, name, kind
+        self.sizes = {info.filename: info.file_size for info in archive.infolist()}
+        self.expanded = 0
+
+    def __contains__(self, part: str) -> bool:
+        return part in self.sizes
+
+    def xml(self, part: str) -> ElementTree.Element:
+        self.expanded += self.sizes[part]
+        if self.expanded > _MAX_EXPANDED_BYTES:
+            raise DocumentError(f"{self.name} expands to more than {_MAX_EXPANDED_BYTES // 1_048_576} MB")
+        return _parse_xml(self.archive.read(part))
+
+
+def _read_package(path: Path, kind: str, required: str, read: Callable[[_Package], str]) -> str:
+    """Open ``path`` as a zip package that must hold ``required`` and pass it to ``read``."""
+    try:
+        with zipfile.ZipFile(path) as archive:
+            package = _Package(archive, path.name, kind)
+            if required not in package:
+                raise DocumentError(f"{path.name} has no {required}; is it a {kind}?")
+            return read(package)
+    except (zipfile.BadZipFile, KeyError, ValueError) as err:
+        raise DocumentError(f"{path.name} is not a valid {kind}: {err}") from err
+
+
+def _parse_xml(xml: bytes) -> ElementTree.Element:
+    # Office writers never declare a DOCTYPE; refusing one rules out entity-expansion tricks.
+    if b"<!DOCTYPE" in xml[:4096].upper():
+        raise DocumentError("document XML declares a DOCTYPE")
+    try:
+        return ElementTree.fromstring(xml)
+    except ElementTree.ParseError as err:
+        raise DocumentError(f"document XML is malformed: {err}") from err
+
+
+def _targets(package: _Package, rels_part: str, base: str) -> dict[str, str]:
+    """Relationship id to part name, from a ``.rels`` part, resolved against the folder ``base``."""
+    if rels_part not in package:
+        return {}
+    out = {}
+    for rel in package.xml(rels_part):
+        target = rel.get("Target", "")
+        if rel.get("TargetMode") == "External" or not target:
+            continue
+        full = target.lstrip("/") if target.startswith("/") else posixpath.normpath(posixpath.join(base, target))
+        out[rel.get("Id", "")] = full
+    return out
+
+
+def _number(name: str) -> int:
+    match = re.search(r"(\d+)\.xml$", name)
+    return int(match.group(1)) if match else 0
 
 
 # --- Word ---------------------------------------------------------------------------------------
@@ -48,28 +117,20 @@ _DOCX_PARTS = ("word/document.xml", "word/footnotes.xml", "word/endnotes.xml")
 
 def docx_text(path: Path) -> str:
     """Paragraph text of the main document, footnotes and endnotes, one paragraph per line."""
-    try:
-        with zipfile.ZipFile(path) as archive:
-            names = set(archive.namelist())
-            if _DOCX_PARTS[0] not in names:
-                raise DocumentError(f"{path.name} has no word/document.xml; is it a Word document?")
-            total = sum(info.file_size for info in archive.infolist() if info.filename in _DOCX_PARTS)
-            if total > _MAX_EXPANDED_BYTES:
-                raise DocumentError(f"{path.name} expands to more than {_MAX_EXPANDED_BYTES // 1_048_576} MB")
-            parts = [_docx_part(archive.read(name)) for name in _DOCX_PARTS if name in names]
-    except (zipfile.BadZipFile, KeyError) as err:
-        raise DocumentError(f"{path.name} is not a valid .docx file: {err}") from err
-    return "\n".join(part for part in parts if part)[:_MAX_TEXT_CHARS]
+
+    def read(package: _Package) -> str:
+        parts = [_docx_lines(package.xml(name)) for name in _DOCX_PARTS if name in package]
+        return "\n".join(part for part in parts if part)
+
+    return _read_package(path, "Word document", _DOCX_PARTS[0], read)
 
 
 def _docx_part(xml: bytes) -> str:
-    # Word never writes a DOCTYPE; refusing one rules out entity-expansion tricks before parsing.
-    if b"<!DOCTYPE" in xml[:4096].upper():
-        raise DocumentError("document XML declares a DOCTYPE")
-    try:
-        root = ElementTree.fromstring(xml)
-    except ElementTree.ParseError as err:
-        raise DocumentError(f"document XML is malformed: {err}") from err
+    """The text of one Word XML part (kept separate so it can be fuzzed on its own)."""
+    return _docx_lines(_parse_xml(xml))
+
+
+def _docx_lines(root: ElementTree.Element) -> str:
     lines = []
     for paragraph in root.iter(f"{_W}p"):
         pieces = []
@@ -82,6 +143,174 @@ def _docx_part(xml: bytes) -> str:
                 pieces.append("\n")
         lines.append("".join(pieces))
     return "\n".join(lines).strip()
+
+
+# --- Excel --------------------------------------------------------------------------------------
+
+_S = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
+_R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+
+
+def xlsx_text(path: Path) -> str:
+    """Every sheet in workbook order: a ``[sheet Name]`` line, then one line per row with its cells
+    separated by tabs. Cells show their stored value: text, numbers and formula results as last
+    saved (dates appear as the number Excel stores)."""
+
+    def read(package: _Package) -> str:
+        shared = []
+        if "xl/sharedStrings.xml" in package:
+            shared = [
+                "".join(t.text or "" for t in item.iter(f"{_S}t")) for item in package.xml("xl/sharedStrings.xml")
+            ]
+        targets = _targets(package, "xl/_rels/workbook.xml.rels", "xl")
+        sheets = package.xml("xl/workbook.xml").iter(f"{_S}sheet")
+        blocks = []
+        for sheet in sheets:
+            part = targets.get(sheet.get(f"{_R}id", ""), "")
+            if part not in package:
+                continue
+            rows = [_xlsx_row(row, shared) for row in package.xml(part).iter(f"{_S}row")]
+            body = "\n".join(row for row in rows if row)
+            if body:
+                blocks.append(f"[sheet {_label(sheet.get('name'))}]\n{body}")
+        return "\n\n".join(blocks)
+
+    return _read_package(path, "Excel workbook", "xl/workbook.xml", read)
+
+
+def _xlsx_row(row: ElementTree.Element, shared: list[str]) -> str:
+    cells = []
+    for cell in row.iter(f"{_S}c"):
+        kind, value = cell.get("t"), cell.find(f"{_S}v")
+        raw = value.text if value is not None and value.text else ""
+        if kind == "s":
+            text = shared[int(raw)] if raw.isdecimal() and int(raw) < len(shared) else ""
+        elif kind == "inlineStr":
+            text = "".join(t.text or "" for t in cell.iter(f"{_S}t"))
+        elif kind == "b":
+            text = {"1": "TRUE", "0": "FALSE"}.get(raw, "")
+        elif kind == "e":
+            text = ""  # an error value such as #DIV/0! carries no meaning to search for
+        else:
+            text = raw
+        if text.strip():
+            cells.append(text.strip())
+    return "\t".join(cells)
+
+
+def _label(name: str | None) -> str:
+    """A sheet name safe to put inside a marker line."""
+    return re.sub(r"[\]\n\r]+", " ", name or "").strip() or "?"
+
+
+# --- PowerPoint ---------------------------------------------------------------------------------
+
+_A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+_P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
+
+
+def pptx_text(path: Path) -> str:
+    """The text on each slide in presentation order, after a ``[slide N]`` line. Speaker notes are
+    not read."""
+
+    def read(package: _Package) -> str:
+        targets = _targets(package, "ppt/_rels/presentation.xml.rels", "ppt")
+        order = [targets.get(s.get(f"{_R}id", ""), "") for s in package.xml("ppt/presentation.xml").iter(f"{_P}sldId")]
+        slides = [part for part in order if part in package]
+        if not slides:  # no usable slide list: fall back to the slide parts by number
+            slides = sorted((n for n in package.sizes if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)), key=_number)
+        blocks = []
+        for number, part in enumerate(slides, start=1):
+            lines = [_drawing_paragraph(p) for p in package.xml(part).iter(f"{_A}p")]
+            body = "\n".join(line for line in lines if line.strip())
+            if body:
+                blocks.append(f"[slide {number}]\n{body}")
+        return "\n\n".join(blocks)
+
+    return _read_package(path, "PowerPoint presentation", "ppt/presentation.xml", read)
+
+
+def _drawing_paragraph(paragraph: ElementTree.Element) -> str:
+    pieces = []
+    for node in paragraph.iter():
+        if node.tag == f"{_A}t" and node.text:
+            pieces.append(node.text)
+        elif node.tag == f"{_A}br":
+            pieces.append("\n")
+        elif node.tag == f"{_A}tab":
+            pieces.append("\t")
+    return "".join(pieces).strip()
+
+
+# --- OpenDocument -------------------------------------------------------------------------------
+
+_TEXT = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}"
+_TABLE = "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}"
+_DRAW = "{urn:oasis:names:tc:opendocument:xmlns:drawing:1.0}"
+_OFFICE = "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}"
+
+
+def odf_text(path: Path) -> str:
+    """OpenDocument text (.odt) as paragraphs, spreadsheets (.ods) as ``[sheet Name]`` blocks of
+    tab-separated rows, presentations (.odp) as ``[slide N]`` blocks."""
+
+    def read(package: _Package) -> str:
+        body = package.xml("content.xml").find(f"{_OFFICE}body")
+        if body is None:
+            return ""
+        blocks = []
+        sheets = list(body.iter(f"{_TABLE}table")) if path.suffix.lower() == ".ods" else []
+        pages = list(body.iter(f"{_DRAW}page"))
+        for sheet in sheets:
+            rows = [
+                "\t".join(c for c in map(_odf_cell, row.iter(f"{_TABLE}table-cell")) if c)
+                for row in sheet.iter(f"{_TABLE}table-row")
+            ]
+            text = "\n".join(row for row in rows if row)
+            if text:
+                blocks.append(f"[sheet {_label(sheet.get(f'{_TABLE}name'))}]\n{text}")
+        for number, page in enumerate(pages, start=1):
+            text = "\n".join(_odf_paragraphs(page))
+            if text:
+                blocks.append(f"[slide {number}]\n{text}")
+        if not sheets and not pages:
+            blocks.append("\n".join(_odf_paragraphs(body)))
+        return "\n\n".join(block for block in blocks if block)
+
+    return _read_package(path, "OpenDocument file", "content.xml", read)
+
+
+def _odf_paragraphs(node: ElementTree.Element) -> list[str]:
+    """The paragraphs and headings under ``node``, in order, without counting nested ones twice."""
+    out: list[str] = []
+    for child in node:
+        if child.tag in (f"{_TEXT}p", f"{_TEXT}h"):
+            text = _odf_inline(child).strip()
+            if text:
+                out.append(text)
+        else:
+            out.extend(_odf_paragraphs(child))
+    return out
+
+
+def _odf_inline(node: ElementTree.Element) -> str:
+    pieces = [node.text or ""]
+    for child in node:
+        if child.tag == f"{_TEXT}s":
+            count = child.get(f"{_TEXT}c", "1")
+            pieces.append(" " * min(int(count) if count.isdecimal() else 1, 100))
+        elif child.tag == f"{_TEXT}tab":
+            pieces.append("\t")
+        elif child.tag == f"{_TEXT}line-break":
+            pieces.append("\n")
+        else:
+            pieces.append(_odf_inline(child))
+        pieces.append(child.tail or "")
+    return "".join(pieces)
+
+
+def _odf_cell(cell: ElementTree.Element) -> str:
+    return " ".join(_odf_paragraphs(cell)).strip()
 
 
 # --- PDF ----------------------------------------------------------------------------------------

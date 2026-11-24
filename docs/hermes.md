@@ -8,24 +8,31 @@ The plugin adds two tools:
 ## Install
 
 ```bash
-hermes plugins install hermes-scout
+hermes plugins install Shizoqua/hermes-scout/hermes_scout
 hermes plugins enable hermes-scout
 ```
 
 ## What the agent receives
 
+For the question *"how do we keep a copy of the database in case it gets lost"* on the benchmark
+project (paths, lines and counts exact, scores as recorded to two decimals, passage cut short):
+
 ```json
 {
-  "query": "how does the client handle rate limiting and retries",
-  "root": "/home/me/project",
+  "query": "how do we keep a copy of the database in case it gets lost",
+  "ranking": "hybrid",
+  "root": "/home/me/hermes-scout/benchmarks/corpus",
   "model": "nomic-embed-text",
   "results": [
-    {"path": "notes/retries.md", "lines": "1-3", "score": 0.5948,
-     "text": "Retry policy\n\nWhen the API answers 429 the client waits with exponential backoff..."}
+    {"path": "docs/backups.md", "lines": "1-15", "score": 0.63,
+     "text": "# Backups and restores\n\n## Nightly dumps\n\nA scheduled job runs `pg_dump` at 02:00 UTC ..."}
   ],
-  "index": {"indexed_files": 0, "reused_files": 2, "removed_files": 0, "chunks": 2}
+  "index": {"indexed_files": 0, "reused_files": 23, "removed_files": 0, "chunks": 23}
 }
 ```
+
+A passage from a document starts with its `[page N]`, `[slide N]` or `[sheet Name]` line. For
+documents, `lines` counts lines of the extracted text, so cite the page, slide or sheet instead.
 
 | Argument | Meaning |
 |---|---|
@@ -33,7 +40,7 @@ hermes plugins enable hermes-scout
 | `path` | Folder to search; relative paths resolve against the agent's working directory. |
 | `top_k` | Passages to return, 1 to 20. |
 | `glob` | Only search matching files, such as `*.md`, `docs/` or `src/**/*.py`; separate several with commas. |
-| `ranking` | `hybrid`: meaning and exact words together; `semantic`: meaning only; `keyword`: exact words only. Defaults to the `ranking` setting. |
+| `ranking` | `hybrid`: meaning for questions, exact words first for code names like `ERR_4291`; `semantic`: meaning only; `keyword`: exact words only. Defaults to the `ranking` setting. |
 
 ## Find related files
 
@@ -77,3 +84,6 @@ Change them in the Desktop app (**Settings → Plugins → hermes-scout**) or wi
 Inside Hermes, every file is checked against Hermes's own file-safety rules, so paths Hermes's file
 tools refuse to read (credential stores, `.env` files and similar) are never indexed. An optional API
 key is read through Hermes's secret store as `SCOUT_API_KEY`.
+
+The passages a search returns become part of the conversation, so the model Hermes uses reads them,
+as it would any file Hermes opens. With a hosted model, that provider sees them.

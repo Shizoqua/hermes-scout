@@ -23,9 +23,11 @@ _TOP_K = {
 SCOUT_SEARCH: dict[str, Any] = {
     "name": "scout_search",
     "description": (
-        "Search a folder of local text files (notes, docs, source code) by meaning and by keywords, "
-        "using embeddings and full-text search together. Returns the most relevant passages with file "
-        "path, line range and a similarity score. The first search of a folder builds an index, which "
+        "Search a folder of local files (notes, docs, source code, and PDF, Word, Excel, PowerPoint and "
+        "OpenDocument files) by meaning and by keywords, using embeddings and full-text search together. "
+        "Returns the most relevant passages with file path, line range and a similarity score (empty for "
+        "keyword-only ranking); a passage from a document starts with its [page N], [slide N] or "
+        "[sheet Name] line. The first search of a folder builds an index, which "
         "can take a while for large folders; later searches only re-read files that changed. Use it when "
         "the user asks where something is discussed or implemented and the exact wording is unknown."
     ),

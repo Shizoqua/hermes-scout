@@ -8,8 +8,8 @@ abstract: >-
   A Hermes Agent plugin and command line tool that searches local text files by meaning. Files are split into
   overlapping line-aligned chunks, embedded through any OpenAI-compatible embeddings endpoint
   and ranked by cosine similarity, with an incremental SQLite index.
-version: 0.4.0
-date-released: 2026-11-23
+version: 0.5.0
+date-released: 2026-11-24
 license: MIT
 repository-code: "https://github.com/Shizoqua/hermes-scout"
 url: "https://shizoqua.github.io/hermes-scout/"
